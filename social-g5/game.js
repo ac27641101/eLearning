@@ -135,9 +135,180 @@ function show(id){
 }
 function unitStars(u){ const s = Store.get(); return u.levels.reduce((n, l) => n + (s[l.id] || 0), 0); }
 
+/* 新增獎勵：在 REWARDS 加一筆即可。id 用 reward3 這種名字，預覽網址就是 ?preview=reward3。 */
+const REWARD_UNIT = '五年級社會・看見福爾摩沙';
+const REWARDS = [
+  {
+    id: 'reward1', need: 24, tier: 'star',
+    short: 'Switch 1 小時獎勵卡',
+    title: 'Switch 遊戲 1 小時 獎勵卡',
+    redeem: '憑此卡可兌換 Switch 遊戲時間 1 小時',
+    honor: '臺灣歷史小達人',
+    badge: '🎮 我的 1 小時獎勵卡'
+  },
+  {
+    id: 'reward2', need: 48, tier: 'gold',
+    short: 'Switch 3 小時獎勵卡',
+    title: 'Switch 遊戲 3 小時 獎勵卡',
+    redeem: '憑此卡可兌換 Switch 遊戲時間 3 小時',
+    honor: '福爾摩沙時光大師',
+    badge: '💎 我的 3 小時獎勵卡'
+  }
+];
+const RewardStore = {
+  key: 'formosa-g5-rewards',
+  all(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch (e) { return {}; } },
+  date(id){ return this.all()[id] || ''; },
+  set(id, iso){
+    const bag = this.all(); bag[id] = iso;
+    try { localStorage.setItem(this.key, JSON.stringify(bag)); } catch (e) {}
+  }
+};
+function starTotal(){ return UNITS.reduce((n, u) => n + unitStars(u), 0); }
+function starMax(){ return UNITS.reduce((n, u) => n + u.levels.length * 3, 0); }
+function todayISO(){
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+}
+function formatDate(iso){
+  const p = String(iso || '').split('-');
+  if (p.length !== 3) return iso || '';
+  return Number(p[0]) + '年' + Number(p[1]) + '月' + Number(p[2]) + '日';
+}
+function isEarned(reward){ return !!RewardStore.date(reward.id) || starTotal() >= reward.need; }
+function controllerSVG(){
+  return `<svg class="pad" viewBox="0 0 84 54" aria-hidden="true" focusable="false">
+    <rect class="pad-l" x="1" y="18" width="18" height="32" rx="6"/>
+    <rect class="pad-r" x="65" y="18" width="18" height="32" rx="6"/>
+    <rect class="pad-body" x="16" y="4" width="52" height="36" rx="6"/>
+    <rect class="pad-screen" x="30" y="10" width="24" height="16" rx="2"/>
+    <path class="pad-ink" d="M22 24h5v-5h4v5h5v4h-5v5h-4v-5h-5z"/>
+    <circle class="pad-a" cx="60" cy="14" r="2.4"/>
+    <circle class="pad-b" cx="66" cy="20" r="2.4"/>
+    <circle class="pad-c" cx="60" cy="26" r="2.4"/>
+    <circle class="pad-d" cx="54" cy="20" r="2.4"/>
+  </svg>`;
+}
+function rewardCardHTML(reward, iso){
+  const gold = reward.tier === 'gold';
+  return `<article class="ticket px${gold ? ' gold' : ''}">
+    <div class="ticket-stub">
+      <span class="stub-kicker">${gold ? '鑽石級' : '星星級'}</span>
+      ${controllerSVG()}
+      <div class="stub-stars">★ ${reward.need}</div>
+      <div class="stub-word">獎勵卡</div>
+    </div>
+    <div class="ticket-main">
+      <p class="ticket-unit">${REWARD_UNIT}</p>
+      <h2 id="rewardTitle">${reward.title}</h2>
+      ${gold ? '<div class="gems" aria-hidden="true"><i></i><i></i><i></i></div>' : ''}
+      <p class="ticket-redeem">${reward.redeem}</p>
+      <p class="ticket-honor">稱號：${reward.honor}</p>
+      <p class="ticket-date">獲得日期：<time datetime="${iso}">${formatDate(iso)}</time></p>
+      <div class="sign-row"><span>爸爸簽名</span><i></i></div>
+      <div class="sign-row"><span>兌換日期</span><i></i></div>
+    </div>
+  </article>`;
+}
+let rewardCloser = null;
+function showRewardCard(reward, opts){
+  const preview = !!(opts && opts.preview);
+  if (!preview && starTotal() >= reward.need && !RewardStore.date(reward.id)) RewardStore.set(reward.id, todayISO());
+  const iso = RewardStore.date(reward.id) || todayISO();
+  $('rewardCard').innerHTML = rewardCardHTML(reward, iso);
+  $('rewardOverlay').hidden = false;
+  document.body.classList.add('reward-open');
+  if (opts && opts.celebrate){
+    confetti();
+    if (reward.tier === 'gold') confetti();
+    Sound.win();
+  }
+  return new Promise(resolve => {
+    rewardCloser = () => {
+      rewardCloser = null;
+      $('rewardOverlay').hidden = true;
+      document.body.classList.remove('reward-open');
+      resolve();
+    };
+    $('rewardClose').focus();
+  });
+}
+function renderRewards(){
+  const all = starTotal();
+  const next = REWARDS.find(r => !isEarned(r));
+  const hint = $('rewardHint');
+  if (next){
+    hint.hidden = false;
+    hint.textContent = `再 ${next.need - all} 顆星就能拿到 ${next.short}！`;
+  } else {
+    hint.hidden = true;
+    hint.textContent = '';
+  }
+  const badges = $('rewardBadges');
+  badges.replaceChildren();
+  REWARDS.filter(isEarned).forEach(r => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'px-btn reward-badge' + (r.tier === 'gold' ? ' gold-badge' : ' orange');
+    b.textContent = r.badge;
+    b.addEventListener('click', () => { Sound.click(); showRewardCard(r); });
+    badges.appendChild(b);
+  });
+  const list = $('rewardList');
+  list.replaceChildren();
+  REWARDS.forEach(r => {
+    const earned = isEarned(r);
+    const have = earned ? r.need : Math.min(all, r.need);
+    const pct = Math.round(have / r.need * 100);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'peek-card px' + (r.tier === 'gold' ? ' gold' : '') + (earned ? ' unlocked' : ' locked');
+    btn.dataset.reward = r.id;
+    btn.setAttribute('aria-label', earned
+      ? r.title + '，已解鎖，點開查看'
+      : r.title + '，尚未解鎖，' + have + '/' + r.need);
+    btn.innerHTML = `<div class="peek-art">
+        <span class="peek-kicker">${r.tier === 'gold' ? '鑽石級' : '星星級'}</span>
+        ${controllerSVG()}
+        <span class="peek-title">${r.title}</span>
+        <span class="peek-redeem">${r.redeem}</span>
+        <span class="peek-honor">稱號：${r.honor}</span>
+      </div>` + (earned
+      ? `<span class="peek-open">已解鎖・點一下打開</span>`
+      : `<div class="peek-cover">
+          <span class="peek-lock" aria-hidden="true">🔒</span>
+          <strong>集滿 ${r.need} ⭐ 解鎖</strong>
+          <span class="peek-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.need}" aria-valuenow="${have}"><span style="width:${pct}%"></span></span>
+          <span class="peek-count">${have}/${r.need}</span>
+        </div>`);
+    btn.addEventListener('click', () => {
+      if (!isEarned(r)){
+        const left = r.need - starTotal();
+        toast(left > 0 ? `🔒 再 ${left} 顆星就解鎖囉，加油！` : '再努力一下就解鎖囉！');
+        Sound.bad();
+        return;
+      }
+      Sound.click();
+      showRewardCard(r);
+    });
+    list.appendChild(btn);
+  });
+}
+async function celebratePending(){
+  const all = starTotal();
+  for (const r of REWARDS){
+    if (all >= r.need && !RewardStore.date(r.id)){
+      RewardStore.set(r.id, todayISO());
+      renderRewards();
+      await showRewardCard(r, {celebrate: true});
+    }
+  }
+}
+
 function renderLobby(){
-  const all = UNITS.reduce((n, u) => n + unitStars(u), 0), max = UNITS.reduce((n, u) => n + u.levels.length * 3, 0);
+  const all = starTotal(), max = starMax();
   $('totalStars').innerHTML = `目前收集 <b>★ ${all}</b> / ${max}` + (all === max && max ? '　🏆 你是福爾摩沙時光大師！' : '');
+  renderRewards();
   $('portals').innerHTML = UNITS.map((u, i) => {
     const s = Store.get();
     const groups = u.levels.map(l => `<span class="star-grp">${starHTML(s[l.id] || 0)}</span>`).join('');
@@ -204,8 +375,11 @@ async function timeUp(){
 async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
+  const before = starTotal();
   const stars = starsFor(game.miss, game.right);
   Store.set(curLevel.id, stars);
+  const after = starTotal();
+  const crossed = REWARDS.filter(r => before < r.need && after >= r.need && !RewardStore.date(r.id));
   if (stars) { Sound.win(); confetti(); } else Sound.bad();
   const idx = curUnit.levels.indexOf(curLevel), next = curUnit.levels[idx + 1];
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
@@ -215,6 +389,10 @@ async function finishLevel(){
     html: `<div class="m-stars">${starHTML(stars)}</div>${starVerdict(stars, game.miss)}
       ${curLevel.recap ? `<div class="explain" style="margin-top:10px;text-align:left">📌 ${curLevel.recap}</div>` : ''}`,
     buttons: btns});
+  for (const r of crossed){
+    RewardStore.set(r.id, todayISO());
+    await showRewardCard(r, {celebrate: true});
+  }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
   else openUnit(curUnit);
@@ -363,10 +541,18 @@ $('homeBtn').addEventListener('click', () => { Sound.click(); $('play').classLis
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
 $('resetBtn').addEventListener('click', async () => {
-  const ok = await showModal({icon: '🧹', title: '清除星星？', center: true, html: '所有關卡的星星紀錄都會歸零喔！',
+  const ok = await showModal({icon: '🧹', title: '清除星星？', center: true, html: '所有關卡的星星紀錄都會歸零喔！已經拿到的獎勵卡還在。',
     buttons: [{label: '確定清除', value: true, cls: 'red'}, {label: '取消', value: false, cls: 'stone'}]});
   if (ok){ Store.clear(); renderLobby(); }
 });
+$('rewardClose').addEventListener('click', () => { Sound.click(); if (rewardCloser) rewardCloser(); });
+$('rewardPrint').addEventListener('click', () => { Sound.click(); window.print(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && rewardCloser) rewardCloser(); });
 document.addEventListener('pointerdown', () => Sound.unlock(), {once: true});
 if (window.speechSynthesis) speechSynthesis.getVoices();
 renderLobby();
+{
+  const preview = REWARDS.find(r => r.id === new URLSearchParams(location.search).get('preview'));
+  if (preview) showRewardCard(preview, {celebrate: true, preview: true});
+  else celebratePending();
+}
