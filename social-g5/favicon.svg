@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#7cc8ff"/>
+  <rect y="40" width="64" height="8" fill="#5dbb3f"/>
+  <rect y="48" width="64" height="16" fill="#8b5a2b"/>
+  <text x="32" y="36" text-anchor="middle" font-size="28">⭐</text>
+</svg>
