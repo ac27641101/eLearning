@@ -244,16 +244,6 @@ function renderRewards(){
     hint.hidden = true;
     hint.textContent = '';
   }
-  const badges = $('rewardBadges');
-  badges.replaceChildren();
-  REWARDS.filter(isEarned).forEach(r => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'px-btn reward-badge' + (r.tier === 'gold' ? ' gold-badge' : ' orange');
-    b.textContent = r.badge;
-    b.addEventListener('click', () => { Sound.click(); showRewardCard(r); });
-    badges.appendChild(b);
-  });
   const list = $('rewardList');
   list.replaceChildren();
   REWARDS.forEach(r => {
@@ -262,25 +252,17 @@ function renderRewards(){
     const pct = Math.round(have / r.need * 100);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'peek-card px' + (r.tier === 'gold' ? ' gold' : '') + (earned ? ' unlocked' : ' locked');
+    btn.className = 'peek-row' + (r.tier === 'gold' ? ' gold' : '') + (earned ? ' unlocked' : ' locked');
     btn.dataset.reward = r.id;
     btn.setAttribute('aria-label', earned
       ? r.title + '，已解鎖，點開查看'
       : r.title + '，尚未解鎖，' + have + '/' + r.need);
-    btn.innerHTML = `<div class="peek-art">
-        <span class="peek-kicker">${r.tier === 'gold' ? '鑽石級' : '星星級'}</span>
-        ${controllerSVG()}
-        <span class="peek-title">${r.title}</span>
-        <span class="peek-redeem">${r.redeem}</span>
-        <span class="peek-honor">稱號：${r.honor}</span>
-      </div>` + (earned
-      ? `<span class="peek-open">已解鎖・點一下打開</span>`
-      : `<div class="peek-cover">
-          <span class="peek-lock" aria-hidden="true">🔒</span>
-          <strong>集滿 ${r.need} ⭐ 解鎖</strong>
-          <span class="peek-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.need}" aria-valuenow="${have}"><span style="width:${pct}%"></span></span>
-          <span class="peek-count">${have}/${r.need}</span>
-        </div>`);
+    btn.innerHTML = `<span class="peek-ico" aria-hidden="true">${controllerSVG()}</span>
+      <span class="peek-title">${r.short}</span>` + (earned
+      ? `<span class="peek-open">點開</span>`
+      : `<span class="peek-lock" aria-hidden="true">🔒</span>
+         <span class="peek-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.need}" aria-valuenow="${have}"><span style="width:${pct}%"></span></span>
+         <span class="peek-count">${have}/${r.need}</span>`);
     btn.addEventListener('click', () => {
       if (!isEarned(r)){
         const left = r.need - starTotal();
