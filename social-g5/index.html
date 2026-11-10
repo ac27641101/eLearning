@@ -23,6 +23,15 @@
     <h1 class="lobby-title">看見福爾摩沙</h1>
     <p class="lobby-sub">五年級上學期社會｜第四單元：從潟湖貿易走到大航海時代，收集全部 ⭐！</p>
     <div class="total px" id="totalStars"></div>
+    <div class="reward-area" id="rewardArea">
+      <p class="reward-hint" id="rewardHint" hidden></p>
+      <div class="reward-badges" id="rewardBadges"></div>
+      <section class="reward-peek px" id="rewardPeek" aria-labelledby="rewardPeekTitle">
+        <h2 id="rewardPeekTitle">獎勵預覽區</h2>
+        <p class="peek-lead">集滿星星就能兌換。先偷看獎勵長什麼樣子！</p>
+        <div class="peek-grid" id="rewardList"></div>
+      </section>
+    </div>
     <div class="portals" id="portals"></div>
     <button class="px-btn wood notes-btn" id="resetBtn">🧹 清除星星紀錄</button>
   </section>
@@ -49,6 +58,16 @@
 </div>
 
 <div class="overlay" id="overlay"><div class="modal px" role="dialog" aria-modal="true" id="modal"></div></div>
+<div class="reward-overlay" id="rewardOverlay" hidden>
+  <div class="reward-sheet" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+    <div id="rewardCard"></div>
+    <p class="reward-tip">把這張卡給爸爸看，或列印下來兌換。</p>
+    <div class="reward-actions">
+      <button type="button" class="px-btn wood" id="rewardPrint">🖨️ 列印獎勵卡</button>
+      <button type="button" class="px-btn" id="rewardClose">收起來</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="assertive"></div>
 
 <script src="data.js"></script>
