@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<script src="../assets/gate.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>五上自然・力與運動</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="cloud" style="top:7%"></div>
+<div class="cloud c2"></div>
+
+<div class="app">
+  <header class="topbar">
+    <button class="px-btn home-btn" id="homeBtn" hidden>⬅ 回大廳</button>
+    <div class="title px" id="topTitle">🍎 五上自然・力與運動</div>
+    <button class="px-btn mute-btn" id="muteBtn" aria-label="音效開關">🔊</button>
+  </header>
+
+  <section class="screen active" id="lobby">
+    <h1 class="lobby-title">力與運動</h1>
+    <p class="lobby-sub">五年級上學期自然｜第四單元：地球引力、測量力和摩擦力，收集全部 ⭐！</p>
+    <div class="total px" id="totalStars"></div>
+    <section class="reward-peek" id="rewardPeek" aria-labelledby="rewardPeekTitle">
+      <div class="peek-head">
+        <h2 id="rewardPeekTitle">獎勵</h2>
+        <p class="reward-hint" id="rewardHint" hidden></p>
+      </div>
+      <div class="peek-grid" id="rewardList"></div>
+    </section>
+    <div class="portals" id="portals"></div>
+    <a class="px-btn wood notes-btn" href="../">🏝️ 回學習島</a>
+    <button class="px-btn wood notes-btn" id="resetBtn">🧹 清除星星紀錄</button>
+  </section>
+
+  <section class="screen" id="unit">
+    <div class="level-head px"><h2 id="unitTitle"></h2><span class="chip" id="unitChip"></span></div>
+    <p class="unit-desc px" id="unitDesc"></p>
+    <div class="levels" id="levels"></div>
+  </section>
+
+  <section class="screen" id="play">
+    <div class="level-head px">
+      <h2 id="lvTitle"></h2>
+      <span class="chip" id="lvKind"></span>
+      <span class="chip warn" id="lvTimer" hidden></span>
+      <span class="chip" id="lvProg"></span>
+    </div>
+    <div class="ask px">
+      <span id="lvAsk"></span>
+      <button class="px-btn stone say-btn" id="sayBtn" aria-label="朗讀題目">🔈 唸給我聽</button>
+    </div>
+    <div class="stage" id="stage"></div>
+  </section>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal px" role="dialog" aria-modal="true" id="modal"></div></div>
+<div class="reward-overlay" id="rewardOverlay" hidden>
+  <div class="reward-sheet" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+    <div id="rewardCard"></div>
+    <p class="reward-tip">把這張卡給爸爸看，或列印下來兌換。</p>
+    <div class="reward-actions">
+      <button type="button" class="px-btn wood" id="rewardPrint">🖨️ 列印獎勵卡</button>
+      <button type="button" class="px-btn" id="rewardClose">收起來</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="assertive"></div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
