@@ -13,11 +13,14 @@
 <div class="cloud c2"></div>
 <main class="app">
   <header class="topbar">
+    <button type="button" class="back-btn" id="subjectBack" hidden>⬅ 回科目</button>
     <div class="title px">🎮 學習島</div>
   </header>
-  <h1 class="lobby-title">選擇一個單元</h1>
-  <p class="lobby-sub">五年級的遊戲化學習。先找科目，再點卡片出發！</p>
-  <div id="unit-list" class="subjects"></div>
+  <h1 class="lobby-title" id="hubTitle">選擇一個科目</h1>
+  <p class="lobby-sub" id="hubSub">五年級的遊戲化學習。點一個科目，再挑單元！</p>
+  <p class="hub-note px" id="hubNote" hidden></p>
+  <div id="subject-list" class="subject-pick"></div>
+  <div id="unit-list" class="chapter" hidden></div>
 </main>
 <script src="assets/hub.js"></script>
 </body>
