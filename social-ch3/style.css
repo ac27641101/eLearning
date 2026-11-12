@@ -55,11 +55,15 @@ a.px-btn{text-decoration:none;display:inline-flex;align-items:center;justify-con
 .portal:hover{transform:translateY(-4px)}
 .portal .p-icon{font-size:56px;line-height:1;animation:bob 2s ease-in-out infinite}
 .portal .p-lv{font-size:14px;color:#fff;background:var(--orange-dark);padding:2px 12px;border-radius:99px}
-.portal .p-name{font-size:21px;font-weight:900;text-wrap:balance}
+.portal .p-name{font-size:21px;font-weight:900;text-wrap:balance;overflow-wrap:anywhere}
 .portal .p-desc{font-size:14px;color:#6a5a40;overflow-wrap:anywhere;text-wrap:balance}
 .portal .p-stars{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px 7px;width:100%;max-width:100%;box-sizing:border-box;margin-top:auto;font-size:15px;letter-spacing:0;line-height:1;color:#d1c3a0}
 .portal .p-stars .star-grp{display:inline-flex;white-space:nowrap;letter-spacing:0}
 .portal .p-stars b{color:#f0a800;text-shadow:0 1px 0 #9a6b00}
+.p-score{margin-top:auto;font-size:16px;font-weight:900;color:#6a5a40}
+.p-score b{color:#f0a800;text-shadow:0 1px 0 #9a6b00}
+.p-hint{display:block;max-width:100%;font-size:13px;font-weight:900;color:#6a3a00;background:#ffe7a3;border:2px solid var(--ink);border-radius:8px;padding:3px 8px;line-height:1.4}
+.portal.is-review{box-shadow:inset -5px -5px 0 rgba(0,0,0,.22), inset 5px 5px 0 rgba(255,255,255,.35), 0 5px 0 #c46a00}
 .notes-btn{align-self:center;margin-top:8px;font-size:15px}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .level-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--paper);padding:8px 12px}
@@ -71,7 +75,7 @@ a.px-btn{text-decoration:none;display:inline-flex;align-items:center;justify-con
 .chip.k-boss{background:#8e3bd1}
 .chip.k-adv{background:#e8433a}
 .unit-desc{margin:0;background:rgba(255,255,255,.9);padding:10px 14px;font-size:16px;line-height:1.6}
-.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.levels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .lv-card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;background:#fff;padding:14px;color:var(--ink);font-size:17px}
 .lv-card .lv-ico{font-size:40px}
 .lv-card .lv-name{font-size:20px;font-weight:900}
@@ -135,6 +139,9 @@ a.px-btn{text-decoration:none;display:inline-flex;align-items:center;justify-con
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}30%{transform:translate(-50%,-50%) scale(1.2);opacity:1}100%{transform:translate(-50%,-60%) scale(1);opacity:0}}
 .confetti{position:fixed;top:-20px;width:12px;height:12px;z-index:160;pointer-events:none;animation:fall 2.4s linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media (min-width:1000px){
+  .levels{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 @media (max-width:760px){
   .topbar .title{display:none}
   .portals{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

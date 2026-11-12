@@ -126,20 +126,39 @@ function showModal({icon = '', title = '', html = '', center = false, buttons = 
 }
 
 let curUnit = null, curLevel = null, timerId = null, game = null;
+let curLesson = null;
 function show(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
-  $('homeBtn').hidden = id === 'lobby';
+  const home = $('homeBtn');
+  home.hidden = id === 'lobby';
+  if (id === 'play') home.textContent = '⬅ 回小單元';
+  else if (id === 'unit') home.textContent = curLesson ? `⬅ 回${curLesson.tag}` : '⬅ 回大廳';
+  else home.textContent = '⬅ 回大廳';
   stopTimer(); clearLater(); $('overlay').classList.remove('open');
   if (window.speechSynthesis) speechSynthesis.cancel();
   window.scrollTo(0, 0);
 }
 function unitStars(u){ const s = Store.get(); return u.levels.reduce((n, l) => n + (s[l.id] || 0), 0); }
+function allUnits(){
+  const list = [];
+  (window.LESSONS || []).forEach(ls => ls.units.forEach(u => list.push(u)));
+  (window.STANDALONE || []).forEach(u => list.push(u));
+  return list;
+}
+function findUnit(id){
+  for (const ls of window.LESSONS || []){
+    const u = ls.units.find(x => x.id === id);
+    if (u) return {unit: u, lesson: ls};
+  }
+  const u = (window.STANDALONE || []).find(x => x.id === id);
+  return {unit: u || null, lesson: null};
+}
 
 /* 新增獎勵：在 REWARDS 加一筆即可。id 用 reward3 這種名字，預覽網址就是 ?preview=reward3。 */
 const REWARD_UNIT = '五上社會・臺灣的物產資源';
 const REWARDS = [
   {
-    id: 'reward1', need: 24, tier: 'star',
+    id: 'reward1', need: Math.floor(starMax() / 2), tier: 'star',
     short: 'Switch 1 小時獎勵卡',
     title: 'Switch 遊戲 1 小時 獎勵卡',
     redeem: '憑此卡可兌換 Switch 遊戲時間 1 小時',
@@ -147,7 +166,7 @@ const REWARDS = [
     badge: '🎮 我的 1 小時獎勵卡'
   },
   {
-    id: 'reward2', need: 48, tier: 'gold',
+    id: 'reward2', need: starMax(), tier: 'gold',
     short: 'Switch 3 小時獎勵卡',
     title: 'Switch 遊戲 3 小時 獎勵卡',
     redeem: '憑此卡可兌換 Switch 遊戲時間 3 小時',
@@ -164,8 +183,8 @@ const RewardStore = {
     try { localStorage.setItem(this.key, JSON.stringify(bag)); } catch (e) {}
   }
 };
-function starTotal(){ return UNITS.reduce((n, u) => n + unitStars(u), 0); }
-function starMax(){ return UNITS.reduce((n, u) => n + u.levels.length * 3, 0); }
+function starTotal(){ return allUnits().reduce((n, u) => n + unitStars(u), 0); }
+function starMax(){ return allUnits().reduce((n, u) => n + u.levels.length * 3, 0); }
 function todayISO(){
   const d = new Date(), z = n => String(n).padStart(2, '0');
   return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
@@ -287,25 +306,62 @@ async function celebratePending(){
   }
 }
 
+function lessonStars(ls){ return ls.units.reduce((n, u) => n + unitStars(u), 0); }
+function lessonMax(ls){ return ls.units.reduce((n, u) => n + u.levels.length * 3, 0); }
+function unitPortal(u){
+  const s = Store.get();
+  const groups = u.levels.map(l => `<span class="star-grp">${starHTML(s[l.id] || 0)}</span>`).join('');
+  const hint = u.hint ? `<span class="p-hint">${u.hint}</span>` : '';
+  const review = u.hint ? ' is-review' : '';
+  const label = `${u.tag} ${u.name}${u.hint ? '。' + u.hint + '。現在就可以進入' : ''}`;
+  return `<button type="button" class="portal px${review}" data-u="${u.id}" aria-label="${label}">
+      <span class="p-icon">${u.icon}</span><span class="p-lv">${u.tag}</span>
+      <span class="p-name">${u.name}</span>${u.blurb ? `<span class="p-desc">${u.blurb}</span>` : ''}
+      ${hint}<span class="p-stars">${groups}</span></button>`;
+}
+function bindUnitButtons(root){
+  root.querySelectorAll('[data-u]').forEach(p => p.addEventListener('click', () => {
+    Sound.click(); Sound.unlock();
+    const found = findUnit(p.dataset.u);
+    if (found.unit) openUnit(found.unit);
+  }));
+}
 function renderLobby(){
   const all = starTotal(), max = starMax();
   $('totalStars').innerHTML = `目前收集 <b>★ ${all}</b> / ${max}` + (all === max && max ? '　🏆 你是物產資源大師！' : '');
   renderRewards();
-  $('portals').innerHTML = UNITS.map((u, i) => {
-    const s = Store.get();
-    const groups = u.levels.map(l => `<span class="star-grp">${starHTML(s[l.id] || 0)}</span>`).join('');
-    return `<button class="portal px" data-u="${i}">
-      <span class="p-icon">${u.icon}</span><span class="p-lv">${u.tag}</span>
-      <span class="p-name">${u.name}</span><span class="p-desc">${u.lessons.join('、')}</span>
-      <span class="p-stars">${groups}</span></button>`;
-  }).join('');
-  $('portals').querySelectorAll('.portal').forEach(p => p.addEventListener('click', () => { Sound.click(); Sound.unlock(); openUnit(UNITS[+p.dataset.u]); }));
+  const cards = window.LESSONS.map(ls => {
+    const names = ls.units.map(u => u.name).join('<br>');
+    return `<button type="button" class="portal px" data-lesson="${ls.id}">
+      <span class="p-icon">${ls.icon}</span><span class="p-lv">${ls.tag}</span>
+      <span class="p-name">${ls.name}</span><span class="p-desc">${names}</span>
+      <span class="p-score"><b>★ ${lessonStars(ls)}</b> / ${lessonMax(ls)}</span></button>`;
+  });
+  window.STANDALONE.forEach(u => cards.push(unitPortal(u)));
+  $('portals').innerHTML = cards.join('');
+  $('portals').querySelectorAll('[data-lesson]').forEach(p => p.addEventListener('click', () => {
+    Sound.click(); Sound.unlock();
+    openLesson(window.LESSONS.find(ls => ls.id === p.dataset.lesson));
+  }));
+  bindUnitButtons($('portals'));
   $('topTitle').textContent = '🌾 五上社會・臺灣的物產資源';
   show('lobby');
+}
+function openLesson(ls){
+  curLesson = ls;
+  curUnit = null;
+  $('lessonTitle').textContent = `${ls.icon} ${ls.name}`;
+  $('lessonSub').textContent = ls.sub;
+  $('lessonStars').innerHTML = `這一課 <b>★ ${lessonStars(ls)}</b> / ${lessonMax(ls)}`;
+  $('lessonPortals').innerHTML = ls.units.map(unitPortal).join('');
+  bindUnitButtons($('lessonPortals'));
+  $('topTitle').textContent = `${ls.icon} ${ls.tag}・${ls.name}`;
+  show('lesson');
 }
 
 function openUnit(u){
   curUnit = u;
+  curLesson = findUnit(u.id).lesson;
   const s = Store.get();
   $('unitTitle').textContent = `${u.icon} ${u.name}`;
   $('unitChip').textContent = `★ ${unitStars(u)} / ${u.levels.length * 3}`;
@@ -350,7 +406,7 @@ async function timeUp(){
   game.over = true;
   const v = await showModal({icon: '⏰', title: '時間到！', center: true,
     html: '差一點點！計時挑戰要在時間內完成喔。<br>先複習一下觀念關，再來挑戰吧！',
-    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回單元', value: 'unit', cls: 'wood'}]});
+    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回小單元', value: 'unit', cls: 'wood'}]});
   v === 'again' ? startLevel(curLevel) : openUnit(curUnit);
 }
 
@@ -366,7 +422,7 @@ async function finishLevel(){
   const idx = curUnit.levels.indexOf(curLevel), next = curUnit.levels[idx + 1];
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
-  btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
+  btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
   const v = await showModal({icon: stars ? '🎉' : '💪', title: stars ? '過關！' : '再試一次！', center: true,
     html: `<div class="m-stars">${starHTML(stars)}</div>${starVerdict(stars, game.miss)}
       ${curLevel.recap ? `<div class="explain" style="margin-top:10px;text-align:left">📌 ${curLevel.recap}</div>` : ''}`,
@@ -519,7 +575,12 @@ const RENDER = {
   }
 };
 
-$('homeBtn').addEventListener('click', () => { Sound.click(); $('play').classList.contains('active') && curUnit ? openUnit(curUnit) : renderLobby(); });
+$('homeBtn').addEventListener('click', () => {
+  Sound.click();
+  if ($('play').classList.contains('active') && curUnit) openUnit(curUnit);
+  else if ($('unit').classList.contains('active') && curLesson) openLesson(curLesson);
+  else renderLobby();
+});
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
 $('resetBtn').addEventListener('click', async () => {
