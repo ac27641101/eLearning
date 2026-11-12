@@ -21,27 +21,33 @@
 
   <section class="screen active" id="lobby">
     <h1 class="lobby-title">神奇的水溶液</h1>
-    <p class="lobby-sub">五年級上學期自然｜第三單元：水溶液、酸鹼和導電，收集全部 ⭐！</p>
+    <p class="lobby-sub">五年級上學期自然｜第三單元。點進小單元，用 30 顆星換 Switch 時間。</p>
     <div class="total px" id="totalStars"></div>
-    <section class="reward-peek" id="rewardPeek" aria-labelledby="rewardPeekTitle">
-      <div class="peek-head">
-        <h2 id="rewardPeekTitle">獎勵</h2>
-        <p class="reward-hint" id="rewardHint" hidden></p>
-      </div>
-      <div class="peek-grid" id="rewardList"></div>
-    </section>
     <div class="portals" id="portals"></div>
     <a class="px-btn wood notes-btn" href="../">🏝️ 回學習島</a>
-    <button class="px-btn wood notes-btn" id="resetBtn">🧹 清除星星紀錄</button>
   </section>
 
   <section class="screen" id="unit">
     <div class="level-head px"><h2 id="unitTitle"></h2><span class="chip" id="unitChip"></span></div>
     <p class="unit-desc px" id="unitDesc"></p>
+    <section class="rules-strip" id="rulesStrip" aria-label="摘星換獎勵"></section>
+    <section class="reward-peek" id="rewardPeek" aria-labelledby="rewardPeekTitle">
+      <div class="peek-head">
+        <h2 id="rewardPeekTitle">獎勵</h2>
+        <p class="score-status" id="scoreStatus"></p>
+      </div>
+      <div class="score-bar" id="scoreBar" role="progressbar" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0" aria-label="最好星星"><span></span></div>
+      <div class="peek-grid" id="rewardList"></div>
+      <p class="reward-hint" id="rewardHint" hidden></p>
+    </section>
+    <p class="run-note" id="runNote"></p>
     <div class="levels" id="levels"></div>
+    <button class="px-btn orange notes-btn" id="restartRunBtn" hidden>🔁 這次重來</button>
+    <button class="px-btn wood notes-btn" id="resetBtn">🧹 清除星星紀錄</button>
   </section>
 
   <section class="screen" id="play">
+    <p class="practice-banner" id="practiceBanner" hidden>練習模式，這次不會算星星</p>
     <div class="level-head px">
       <h2 id="lvTitle"></h2>
       <span class="chip" id="lvKind"></span>
@@ -60,7 +66,7 @@
 <div class="reward-overlay" id="rewardOverlay" hidden>
   <div class="reward-sheet" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
     <div id="rewardCard"></div>
-    <p class="reward-tip">把這張卡給爸爸看，或列印下來兌換。</p>
+    <p class="reward-tip" id="rewardTip">把這張卡給爸爸看，或列印下來兌換。</p>
     <div class="reward-actions">
       <button type="button" class="px-btn wood" id="rewardPrint">🖨️ 列印獎勵卡</button>
       <button type="button" class="px-btn" id="rewardClose">收起來</button>
@@ -69,6 +75,7 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="assertive"></div>
 
+<script src="../assets/unit-score.js"></script>
 <script src="data.js"></script>
 <script src="game.js"></script>
 </body>

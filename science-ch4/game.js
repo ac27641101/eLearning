@@ -1,6 +1,5 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const stripTags = html => String(html).replace(/<[^>]*>/g, '');
 function restartAnim(el, cls){ el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
@@ -89,30 +88,19 @@ function speak(text){
   speechSynthesis.speak(u);
 }
 
-const Store = {
-  key: 'science-ch4-stars',
-  mem: {},
-  get(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch(e){ return this.mem; } },
-  set(id, stars){
-    const s = this.get(); s[id] = Math.max(s[id] || 0, stars); this.mem = s;
-    try { localStorage.setItem(this.key, JSON.stringify(s)); } catch(e){}
-  },
-  clear(){ this.mem = {}; try { localStorage.removeItem(this.key); } catch(e){} }
-};
-function starsFor(miss, total){
-  total = Math.max(1, total);
-  if (miss === 0) return 3;
-  if (miss <= Math.max(1, Math.round(total / 4))) return 2;
-  return miss <= total / 2 ? 1 : 0;
-}
-function starVerdict(stars, miss){
-  return stars === 3 ? '全對！太厲害了！'
-    : stars === 2 ? `答錯 ${miss} 次，很棒！再細心一點就能拿到 3 顆星。`
-    : stars === 1 ? `答錯 ${miss} 次，過關了！再複習一下，可以拿到更多星星。`
-    : `答錯 ${miss} 次，這次還沒拿到星星。先看看下面的重點，再挑戰一次吧！💪`;
-}
-const starHTML = n => '<b>' + '★'.repeat(n) + '</b>' + '☆'.repeat(3 - n);
+const CHAPTER = 'science-ch4';
+const REWARD_UNIT = '五上自然・力與運動';
+const HONOR = { reward1: '力與運動小達人', reward2: '力與運動大師' };
 const KIND = { hand: ['🖐️ 動手', 'k-hand'], idea: ['💡 觀念', 'k-idea'], boss: ['🔥 計時挑戰', 'k-boss'], adv: ['🎯 進階', 'k-adv'] };
+const S = window.UnitScore;
+function loadScore(unit){ return S.load(CHAPTER, unit.id); }
+function saveScore(unit, state){ S.save(CHAPTER, unit.id, state); }
+function portalScore(u){
+  const st = loadScore(u);
+  const b = S.best(st);
+  const tag = S.earned(st, 'reward2') ? '60分鐘' : (S.earned(st, 'reward1') ? '30分鐘' : '');
+  return `<span class="p-score"><b>★ ${b}</b> / ${S.STAR_MAX}${tag ? '・' + tag : ''}</span>`;
+}
 
 function showModal({icon = '', title = '', html = '', center = false, buttons = [{label: '好！', value: true}]}){
   return new Promise(resolve => {
@@ -133,49 +121,6 @@ function show(id){
   if (window.speechSynthesis) speechSynthesis.cancel();
   window.scrollTo(0, 0);
 }
-function unitStars(u){ const s = Store.get(); return u.levels.reduce((n, l) => n + (s[l.id] || 0), 0); }
-
-/* 新增獎勵：在 REWARDS 加一筆即可。id 用 reward3 這種名字，預覽網址就是 ?preview=reward3。 */
-const REWARD_UNIT = '五上自然・力與運動';
-const REWARDS = [
-  {
-    id: 'reward1', need: 24, tier: 'star',
-    short: 'Switch 1 小時獎勵卡',
-    title: 'Switch 遊戲 1 小時 獎勵卡',
-    redeem: '憑此卡可兌換 Switch 遊戲時間 1 小時',
-    honor: '力與運動小達人',
-    badge: '🎮 我的 1 小時獎勵卡'
-  },
-  {
-    id: 'reward2', need: 48, tier: 'gold',
-    short: 'Switch 3 小時獎勵卡',
-    title: 'Switch 遊戲 3 小時 獎勵卡',
-    redeem: '憑此卡可兌換 Switch 遊戲時間 3 小時',
-    honor: '力與運動大師',
-    badge: '💎 我的 3 小時獎勵卡'
-  }
-];
-const RewardStore = {
-  key: 'science-ch4-rewards',
-  all(){ try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch (e) { return {}; } },
-  date(id){ return this.all()[id] || ''; },
-  set(id, iso){
-    const bag = this.all(); bag[id] = iso;
-    try { localStorage.setItem(this.key, JSON.stringify(bag)); } catch (e) {}
-  }
-};
-function starTotal(){ return UNITS.reduce((n, u) => n + unitStars(u), 0); }
-function starMax(){ return UNITS.reduce((n, u) => n + u.levels.length * 3, 0); }
-function todayISO(){
-  const d = new Date(), z = n => String(n).padStart(2, '0');
-  return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
-}
-function formatDate(iso){
-  const p = String(iso || '').split('-');
-  if (p.length !== 3) return iso || '';
-  return Number(p[0]) + '年' + Number(p[1]) + '月' + Number(p[2]) + '日';
-}
-function isEarned(reward){ return !!RewardStore.date(reward.id) || starTotal() >= reward.need; }
 function controllerSVG(){
   return `<svg class="pad" viewBox="0 0 84 54" aria-hidden="true" focusable="false">
     <rect class="pad-l" x="1" y="18" width="18" height="32" rx="6"/>
@@ -189,38 +134,45 @@ function controllerSVG(){
     <circle class="pad-d" cx="54" cy="20" r="2.4"/>
   </svg>`;
 }
-function rewardCardHTML(reward, iso){
-  const gold = reward.tier === 'gold';
+function rewardCardHTML(meta, unitName, iso, preview){
+  const gold = meta.tier === 'gold';
+  const dateLine = preview
+    ? '預覽，不會記成已獲得'
+    : (iso ? S.formatDate(iso) : '');
   return `<article class="ticket px${gold ? ' gold' : ''}">
     <div class="ticket-stub">
-      <span class="stub-kicker">${gold ? '鑽石級' : '星星級'}</span>
+      <span class="stub-kicker">${meta.kicker}</span>
       ${controllerSVG()}
-      <div class="stub-stars">★ ${reward.need}</div>
+      <div class="stub-stars">${meta.minutes} 分</div>
       <div class="stub-word">獎勵卡</div>
     </div>
     <div class="ticket-main">
-      <p class="ticket-unit">${REWARD_UNIT}</p>
-      <h2 id="rewardTitle">${reward.title}</h2>
+      <p class="ticket-unit">${S.escapeHtml(REWARD_UNIT)}・${S.escapeHtml(unitName)}</p>
+      <h2 id="rewardTitle">${meta.title}</h2>
       ${gold ? '<div class="gems" aria-hidden="true"><i></i><i></i><i></i></div>' : ''}
-      <p class="ticket-redeem">${reward.redeem}</p>
-      <p class="ticket-honor">稱號：${reward.honor}</p>
-      <p class="ticket-date">獲得日期：<time datetime="${iso}">${formatDate(iso)}</time></p>
+      <p class="ticket-redeem">${meta.redeem}</p>
+      <p class="ticket-honor">稱號：${HONOR[meta.id]}</p>
+      <p class="ticket-date">${preview ? dateLine : '獲得日期：<time datetime="' + S.escapeHtml(iso) + '">' + dateLine + '</time>'}</p>
       <div class="sign-row"><span>爸爸簽名</span><i></i></div>
       <div class="sign-row"><span>兌換日期</span><i></i></div>
     </div>
   </article>`;
 }
 let rewardCloser = null;
-function showRewardCard(reward, opts){
+function showRewardCard(meta, opts){
   const preview = !!(opts && opts.preview);
-  if (!preview && starTotal() >= reward.need && !RewardStore.date(reward.id)) RewardStore.set(reward.id, todayISO());
-  const iso = RewardStore.date(reward.id) || todayISO();
-  $('rewardCard').innerHTML = rewardCardHTML(reward, iso);
+  const unitName = (opts && opts.unitName) || (curUnit ? curUnit.name : '這個小單元');
+  const st = (!preview && curUnit) ? loadScore(curUnit) : null;
+  const iso = preview ? '' : (st && st.rewards[meta.id]) || '';
+  if (preview) S.previewView(S.todayISO());
+  $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview);
   $('rewardOverlay').hidden = false;
   document.body.classList.add('reward-open');
+  const tip = $('rewardTip');
+  if (tip) tip.textContent = preview ? '這是預覽，不會幫孩子解鎖。' : '把這張卡給爸爸看，或列印下來兌換。';
   if (opts && opts.celebrate){
     confetti();
-    if (reward.tier === 'gold') confetti();
+    if (meta.tier === 'gold') confetti();
     Sound.win();
   }
   return new Promise(resolve => {
@@ -233,72 +185,66 @@ function showRewardCard(reward, opts){
     $('rewardClose').focus();
   });
 }
-function renderRewards(){
-  const all = starTotal();
-  const next = REWARDS.find(r => !isEarned(r));
+function renderRewards(u){
+  const st = loadScore(u);
+  const b = S.best(st);
   const hint = $('rewardHint');
-  if (next){
-    hint.hidden = false;
-    hint.textContent = `再 ${next.need - all} 顆星就能拿到 ${next.short}！`;
-  } else {
-    hint.hidden = true;
-    hint.textContent = '';
+  const text = S.hintText(b);
+  hint.hidden = !text;
+  hint.textContent = text;
+  const status = $('scoreStatus');
+  if (status) status.innerHTML = `目前最好 <b>★ ${b}</b> / ${S.STAR_MAX}　${S.chancesText(st)}`;
+  const bar = $('scoreBar');
+  if (bar){
+    const pct = Math.round(b / S.STAR_MAX * 100);
+    bar.setAttribute('aria-valuenow', String(b));
+    bar.setAttribute('aria-valuemax', String(S.STAR_MAX));
+    bar.querySelector('span').style.width = pct + '%';
   }
+  const runNote = $('runNote');
+  if (runNote){
+    if (S.isPractice(st)) runNote.textContent = '';
+    else if (st.run){
+      const done = S.runDoneCount(st, S.levelIds(u));
+      runNote.textContent = done
+        ? `這次已玩完 ${done} 關，還沒算完。可以接著玩，或按「這次重來」。`
+        : '';
+    } else runNote.textContent = '';
+  }
+  const restart = $('restartRunBtn');
+  if (restart) restart.hidden = S.isPractice(st) || !st.run;
   const list = $('rewardList');
   list.replaceChildren();
-  REWARDS.forEach(r => {
-    const earned = isEarned(r);
-    const have = earned ? r.need : Math.min(all, r.need);
-    const pct = Math.round(have / r.need * 100);
+  S.REWARD_META.forEach(meta => {
+    const got = S.earned(st, meta.id);
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'peek-row' + (r.tier === 'gold' ? ' gold' : '') + (earned ? ' unlocked' : ' locked');
-    btn.dataset.reward = r.id;
-    btn.setAttribute('aria-label', earned
-      ? r.title + '，已解鎖，點開查看'
-      : r.title + '，尚未解鎖，' + have + '/' + r.need);
+    btn.className = 'peek-row' + (meta.tier === 'gold' ? ' gold' : '') + (got ? ' unlocked' : ' locked');
+    btn.dataset.reward = meta.id;
+    btn.setAttribute('aria-label', got ? meta.title + '，已解鎖，點開查看' : meta.title + '，還沒解鎖');
     btn.innerHTML = `<span class="peek-ico" aria-hidden="true">${controllerSVG()}</span>
-      <span class="peek-title">${r.short}</span>` + (earned
+      <span class="peek-title">${meta.short}</span>` + (got
       ? `<span class="peek-open">點開</span>`
-      : `<span class="peek-lock" aria-hidden="true">🔒</span>
-         <span class="peek-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${r.need}" aria-valuenow="${have}"><span style="width:${pct}%"></span></span>
-         <span class="peek-count">${have}/${r.need}</span>`);
+      : `<span class="peek-lock" aria-hidden="true">🔒</span>`);
     btn.addEventListener('click', () => {
-      if (!isEarned(r)){
-        const left = r.need - starTotal();
-        toast(left > 0 ? `🔒 再 ${left} 顆星就解鎖囉，加油！` : '再努力一下就解鎖囉！');
+      if (!S.earned(loadScore(u), meta.id)){
+        const left = S.hintText(S.best(loadScore(u)));
+        toast(left ? '🔒 ' + left : '再努力一下就解鎖囉！');
         Sound.bad();
         return;
       }
       Sound.click();
-      showRewardCard(r);
+      showRewardCard(meta, {unitName: u.name});
     });
     list.appendChild(btn);
   });
 }
-async function celebratePending(){
-  const all = starTotal();
-  for (const r of REWARDS){
-    if (all >= r.need && !RewardStore.date(r.id)){
-      RewardStore.set(r.id, todayISO());
-      renderRewards();
-      await showRewardCard(r, {celebrate: true});
-    }
-  }
-}
-
 function renderLobby(){
-  const all = starTotal(), max = starMax();
-  $('totalStars').innerHTML = `目前收集 <b>★ ${all}</b> / ${max}` + (all === max && max ? '　🏆 你是力與運動大師！' : '');
-  renderRewards();
-  $('portals').innerHTML = UNITS.map((u, i) => {
-    const s = Store.get();
-    const groups = u.levels.map(l => `<span class="star-grp">${starHTML(s[l.id] || 0)}</span>`).join('');
-    return `<button class="portal px" data-u="${i}">
+  $('totalStars').textContent = '每個小單元自己集星，最多 30 顆，集滿就能換 Switch 時間。';
+  $('portals').innerHTML = UNITS.map((u, i) => `<button class="portal px" data-u="${i}">
       <span class="p-icon">${u.icon}</span><span class="p-lv">${u.tag}</span>
       <span class="p-name">${u.name}</span><span class="p-desc">${u.lessons.join('<br>')}</span>
-      <span class="p-stars">${groups}</span></button>`;
-  }).join('');
+      ${portalScore(u)}</button>`).join('');
   $('portals').querySelectorAll('.portal').forEach(p => p.addEventListener('click', () => { Sound.click(); Sound.unlock(); openUnit(UNITS[+p.dataset.u]); }));
   $('topTitle').textContent = '🍎 五上自然・力與運動';
   show('lobby');
@@ -306,14 +252,16 @@ function renderLobby(){
 
 function openUnit(u){
   curUnit = u;
-  const s = Store.get();
+  const st = loadScore(u);
   $('unitTitle').textContent = `${u.icon} ${u.name}`;
-  $('unitChip').textContent = `★ ${unitStars(u)} / ${u.levels.length * 3}`;
+  $('unitChip').textContent = `最好 ★ ${S.best(st)} / ${S.STAR_MAX}`;
   $('unitDesc').innerHTML = u.desc;
+  $('rulesStrip').innerHTML = S.RULES_HTML;
+  renderRewards(u);
   $('levels').innerHTML = u.levels.map((l, i) => `<button class="lv-card px" data-l="${i}">
       <span class="lv-ico">${l.icon}</span><span class="chip ${KIND[l.kind][1]}">${KIND[l.kind][0]}</span>
-      <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${l.how}</span>
-      <span class="lv-st">${starHTML(s[l.id] || 0)}</span></button>`).join('');
+      <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
+      <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
@@ -321,19 +269,40 @@ function openUnit(u){
 
 function startLevel(level){
   curLevel = level;
+  const st = loadScore(curUnit);
+  const practice = S.isPractice(st);
+  const replay = !practice && S.runLevelStars(st, level.id) !== null;
   show('play');
-  game = { level, miss: 0, right: 0, over: false };
+  game = { level, tally: S.createTally(), over: false, practice, replay, items: S.countItems(level) };
   $('lvTitle').textContent = `${level.icon} ${level.name}`;
   $('lvKind').textContent = KIND[level.kind][0]; $('lvKind').className = 'chip ' + KIND[level.kind][1];
   $('lvProg').textContent = '';
   $('stage').innerHTML = '';
+  const banner = $('practiceBanner');
+  if (practice){
+    banner.hidden = false;
+    banner.textContent = '練習模式，這次不會算星星';
+  } else if (replay){
+    banner.hidden = false;
+    banner.textContent = '這一關這次已經算過了，再玩不會改分數。';
+  } else banner.hidden = true;
   if (level.time) startTimer(level.time);
   RENDER[level.type](level);
 }
 function setAsk(html){ $('lvAsk').innerHTML = html; }
 function setProg(i, n){ $('lvProg').textContent = `${i} / ${n}`; }
-function miss(tip){ game.miss++; Sound.bad(); if (tip) toast('🤔 ' + tip, 4200); }
-function good(){ if (game) game.right++; Sound.ding(); }
+function missItem(id, tip){
+  S.noteWrong(game.tally, id);
+  Sound.bad();
+  const msg = tip || '這次沒答對，這顆星拿不到。';
+  toast('🤔 ' + msg, 4200);
+}
+function goodItem(id){
+  const before = game.tally.right;
+  S.noteRight(game.tally, id);
+  Sound.ding();
+  if (game.tally.right === before) toast('放對了，可是這顆星剛剛已經拿不到了。', 2200);
+}
 
 function startTimer(sec){
   let left = sec;
@@ -349,7 +318,7 @@ async function timeUp(){
   if (!game || game.over) return;
   game.over = true;
   const v = await showModal({icon: '⏰', title: '時間到！', center: true,
-    html: '差一點點！計時挑戰要在時間內完成喔。<br>先複習一下觀念關，再來挑戰吧！',
+    html: '這一關還沒玩完，不會扣掉計分機會，也不會先鎖住這次的分數。可以再挑戰這一關。',
     buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回單元', value: 'unit', cls: 'wood'}]});
   v === 'again' ? startLevel(curLevel) : openUnit(curUnit);
 }
@@ -357,23 +326,34 @@ async function timeUp(){
 async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
-  const before = starTotal();
-  const stars = starsFor(game.miss, game.right);
-  Store.set(curLevel.id, stars);
-  const after = starTotal();
-  const crossed = REWARDS.filter(r => before < r.need && after >= r.need && !RewardStore.date(r.id));
-  if (stars) { Sound.win(); confetti(); } else Sound.bad();
+  const stars = game.tally.right;
+  const before = loadScore(curUnit);
+  const result = S.commitLevel(before, {
+    levelId: curLevel.id,
+    stars: stars,
+    levelIds: S.levelIds(curUnit),
+    iso: S.todayISO()
+  });
+  if (result.wrote) saveScore(curUnit, result.state);
+  const after = result.wrote ? result.state : before;
+  if (stars && !game.practice) { Sound.win(); confetti(); } else if (!game.practice && stars === 0) Sound.bad();
+  else if (game.practice) Sound.ding();
   const idx = curUnit.levels.indexOf(curLevel), next = curUnit.levels[idx + 1];
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
-  const v = await showModal({icon: stars ? '🎉' : '💪', title: stars ? '過關！' : '再試一次！', center: true,
-    html: `<div class="m-stars">${starHTML(stars)}</div>${starVerdict(stars, game.miss)}
-      ${curLevel.recap ? `<div class="explain" style="margin-top:10px;text-align:left">📌 ${curLevel.recap}</div>` : ''}`,
-    buttons: btns});
-  for (const r of crossed){
-    RewardStore.set(r.id, todayISO());
-    await showRewardCard(r, {celebrate: true});
+  let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
+  if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
+  else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
+  else if (result.completed){
+    html += `這一關得到 ${stars} 顆星。<br>這一單元這次共 <b>${result.total}</b> 顆星。最好成績 ★ ${S.best(after)} / ${S.STAR_MAX}。<br>${S.chancesText(after)}`;
+  } else html += `這一關得到 ${stars} 顆星。<br>四關都玩完，才會用掉 1 次計分機會。`;
+  if (curLevel.recap) html += `<div class="explain" style="margin-top:10px;text-align:left">📌 ${curLevel.recap}</div>`;
+  const v = await showModal({icon: stars ? '🎉' : '💪', title: game.practice ? '練習結束' : '這一關玩完了', center: true,
+    html, buttons: btns});
+  for (const id of result.unlocked){
+    const meta = S.rewardMeta(id);
+    if (meta) await showRewardCard(meta, {celebrate: true, unitName: curUnit.name});
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
@@ -418,25 +398,30 @@ function makeDraggable(card, {findTarget, onDrop, onTap}){
   card.addEventListener('pointercancel', end);
 }
 
+function quizWhy(q){
+  return `<div class="explain" style="margin-top:10px">💡 ${q.why || '答對了！'}${q.trap ? `<div class="trap">⚠️ 小心陷阱：${q.trap}</div>` : ''}</div>`;
+}
 const RENDER = {
   sort(lv){
     setAsk(lv.ask);
-    const items = shuffle(lv.items);
+    const items = S.shuffle(lv.items);
     let done = 0, selected = null;
     $('stage').innerHTML = `<div class="panel px"><div class="tray" id="tray"></div></div><div class="bins" id="bins"></div>`;
     $('bins').innerHTML = lv.bins.map(b => `<div class="bin px tapme" data-b="${b.id}"><h3>${b.icon} ${b.name}</h3><div class="bin-items"></div></div>`).join('');
     setProg(0, items.length);
     const tray = $('tray');
     const drop = (card, bin) => {
+      if (card.classList.contains('ok') || game.over) return;
       const it = items[+card.dataset.i];
+      const key = 's' + card.dataset.i;
       if (selected){ selected.classList.remove('sel'); selected = null; }
       if (it.bin === bin.dataset.b){
-        good(); card.classList.add('ok'); bin.querySelector('.bin-items').appendChild(card);
+        goodItem(key); card.classList.add('ok'); bin.querySelector('.bin-items').appendChild(card);
         restartAnim(bin, 'flash-ok'); done++; setProg(done, items.length);
         if (it.tip) toast('✅ ' + it.tip, 2600);
         if (done === items.length) later(finishLevel, 600);
       } else {
-        restartAnim(card, 'shake'); miss(it.hint || '再想想看，它應該放在別的地方喔！');
+        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。');
       }
     };
     items.forEach((it, i) => {
@@ -453,30 +438,34 @@ const RENDER = {
   },
 
   quiz(lv){
-    const qs = lv.shuffle === false ? lv.questions : shuffle(lv.questions);
+    const qs = S.shuffle(lv.questions);
     let qi = 0;
     const step = () => {
       if (game.over) return;
       if (qi >= qs.length) return finishLevel();
       const q = qs[qi]; setProg(qi + 1, qs.length); setAsk(q.q);
-      const opts = shuffle(q.opts.map((t, i) => ({t, right: i === 0})));
+      const opts = S.choiceDeck(q.opts);
+      let locked = false;
       $('stage').innerHTML = `<div class="panel px">${q.art ? `<div class="q-art">${q.art}</div>` : ''}
         <div class="opts">${opts.map((o, i) => `<button class="px-btn opt" data-i="${i}">${'ABCD'[i]}. ${o.t}</button>`).join('')}</div>
         <div id="why"></div></div>`;
       $('stage').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
-        if (game.over) return;
-        const o = opts[+b.dataset.i];
-        if (o.right){
-          good(); bigCheck(); b.classList.add('right');
-          $('stage').querySelectorAll('.opt').forEach(x => x.disabled = true);
-          $('why').innerHTML = `<div class="explain" style="margin-top:10px">💡 ${q.why || '答對了！'}${q.trap ? `<div class="trap">⚠️ 小心陷阱：${q.trap}</div>` : ''}</div>
-            <div class="next-row" style="margin-top:10px"><button class="px-btn orange" id="nextQ">${qi + 1 < qs.length ? '下一題 ▶' : '完成 🏁'}</button></div>`;
-          $('nextQ').addEventListener('click', () => { Sound.click(); qi++; step(); });
-        } else {
-          b.classList.add('wrong'); b.disabled = true; restartAnim(b, 'shake');
-          miss(q.hint || '不是這個喔，再想一想！');
-          $('why').innerHTML = `<div class="explain" style="margin-top:10px">💡 ${q.why || ''}${q.trap ? `<div class="trap">⚠️ 小心陷阱：${q.trap}</div>` : ''}</div>`;
-        }
+        if (game.over || locked) return;
+        locked = true;
+        const picked = +b.dataset.i;
+        const o = opts[picked];
+        const key = 'q' + qi;
+        if (o.right){ goodItem(key); bigCheck(); }
+        else missItem(key, q.hint || '這題沒答對，這顆星拿不到。');
+        $('stage').querySelectorAll('.opt').forEach(x => {
+          x.disabled = true;
+          const choice = opts[+x.dataset.i];
+          if (choice.right) x.classList.add('right');
+          else if (+x.dataset.i === picked){ x.classList.add('wrong'); restartAnim(x, 'shake'); }
+        });
+        $('why').innerHTML = quizWhy(q) +
+          `<div class="next-row" style="margin-top:10px"><button class="px-btn orange" id="nextQ">${qi + 1 < qs.length ? '下一題 ▶' : '完成 🏁'}</button></div>`;
+        $('nextQ').addEventListener('click', () => { Sound.click(); qi++; step(); });
       }));
     };
     step();
@@ -494,9 +483,11 @@ const RENDER = {
         <div class="panel px"><div class="tray" id="tray"></div></div><div id="why"></div>`;
       setProg(0, r.items.length);
       const tryPlace = card => {
+        if (card.classList.contains('ok') || game.over) return;
         const i = +card.dataset.i;
+        const key = 'r' + ri + '-' + i;
         if (i === next){
-          good(); const slot = $('slots').children[next * 2];
+          goodItem(key); const slot = $('slots').children[next * 2];
           slot.classList.add('filled'); slot.innerHTML = `<span class="em">${r.items[i].em}</span>${r.items[i].t}`;
           card.remove(); next++; setProg(next, r.items.length);
           if (next === r.items.length){
@@ -505,10 +496,10 @@ const RENDER = {
             $('nextR').addEventListener('click', () => { Sound.click(); ri++; round(); });
           }
         } else {
-          restartAnim(card, 'shake'); miss(r.items[i].hint || `「${r.items[i].t}」不是第 ${next + 1} 個喔！`);
+          restartAnim(card, 'shake'); missItem(key, r.items[i].hint || `「${r.items[i].t}」還不是下一個，這顆星拿不到。`);
         }
       };
-      shuffle(r.items.map((it, i) => ({...it, i}))).forEach(it => {
+      S.shuffle(r.items.map((it, i) => ({...it, i}))).forEach(it => {
         const c = document.createElement('div'); c.className = 'chipcard'; c.dataset.i = it.i;
         c.innerHTML = `<span class="em">${it.em}</span><span class="tx">${it.t}</span>`;
         makeDraggable(c, {findTarget: el => el && el.closest('.slots'), onDrop: tryPlace, onTap: tryPlace});
@@ -522,10 +513,23 @@ const RENDER = {
 $('homeBtn').addEventListener('click', () => { Sound.click(); $('play').classList.contains('active') && curUnit ? openUnit(curUnit) : renderLobby(); });
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
+$('restartRunBtn').addEventListener('click', async () => {
+  if (!curUnit) return;
+  const ok = await showModal({icon: '🔁', title: '這次重來？', center: true,
+    html: '這一次已經玩完的關會清掉。計分次數不會減少。',
+    buttons: [{label: '確定重來', value: true, cls: 'orange'}, {label: '取消', value: false, cls: 'stone'}]});
+  if (!ok) return;
+  saveScore(curUnit, S.restartRun(loadScore(curUnit)));
+  openUnit(curUnit);
+});
 $('resetBtn').addEventListener('click', async () => {
-  const ok = await showModal({icon: '🧹', title: '清除星星？', center: true, html: '所有關卡的星星紀錄都會歸零喔！已經拿到的獎勵卡還在。',
+  if (!curUnit) return;
+  const ok = await showModal({icon: '🧹', title: '清除這一單元的星星？', center: true,
+    html: '這一單元的星星、3 次分數，還有獎勵卡日期，都會清掉。其他單元不會動。',
     buttons: [{label: '確定清除', value: true, cls: 'red'}, {label: '取消', value: false, cls: 'stone'}]});
-  if (ok){ Store.clear(); renderLobby(); }
+  if (!ok) return;
+  S.clear(CHAPTER, curUnit.id);
+  openUnit(curUnit);
 });
 $('rewardClose').addEventListener('click', () => { Sound.click(); if (rewardCloser) rewardCloser(); });
 $('rewardPrint').addEventListener('click', () => { Sound.click(); window.print(); });
@@ -534,7 +538,6 @@ document.addEventListener('pointerdown', () => Sound.unlock(), {once: true});
 if (window.speechSynthesis) speechSynthesis.getVoices();
 renderLobby();
 {
-  const preview = REWARDS.find(r => r.id === new URLSearchParams(location.search).get('preview'));
-  if (preview) showRewardCard(preview, {celebrate: true, preview: true});
-  else celebratePending();
+  const preview = S.rewardMeta(new URLSearchParams(location.search).get('preview'));
+  if (preview) showRewardCard(preview, {celebrate: true, preview: true, unitName: '預覽'});
 }

@@ -19,15 +19,23 @@
 
 ## 獎勵
 
-每個單元的星星和獎勵卡分開記在這台裝置上，不會互相蓋掉。集滿星星可以兌換 Switch 遊戲時間，星星只算該單元自己的，不會跨單元加總。社會 CH3 有 48 關、最多 144 顆星：72 顆星是 1 小時，144 顆星是 3 小時。其他單元仍是 24 顆星 1 小時、48 顆星（全部）3 小時。拿到的日期會留著。
+每個小單元自己計分，不會把整章的星星加在一起換獎勵。舊的整章星星不會用來解鎖。
 
-家長想先看卡片、又不想幫孩子解鎖時，用預覽網址（只會打開預覽）：
+- 一個小單元有 4 關、30 題。答對 1 題得 1 顆星，最多 30 顆星。
+- 最好成績達到 26 顆星：可以玩 Nintendo Switch 30 分鐘。
+- 最好成績 30 顆星：再得到一張黃金卡，可以玩 Nintendo Switch 60 分鐘。
+- 每個小單元只有前 3 次「四關都玩完」會計分，留下最好的一次。
+- 玩到一半離開，不算一次，也不會先鎖住這次的分數。可以接著玩，或整次重來。
+- 3 次用完還可以練習。題目一樣，順序會變，但不會改星星、次數或獎勵日期。
+- 在小單元裡按「清除星星紀錄」，會清掉這一單元的星星、3 次分數和獎勵日期。
 
-- [社會 CH3・1 小時](https://ac27641101.github.io/eLearning/social-ch3/?preview=reward1)
-- [社會 CH3・3 小時](https://ac27641101.github.io/eLearning/social-ch3/?preview=reward2)
-- [社會 CH4・1 小時](https://ac27641101.github.io/eLearning/social-g5/?preview=reward1)
-- [社會 CH4・3 小時](https://ac27641101.github.io/eLearning/social-g5/?preview=reward2)
-- [自然 CH3・1 小時](https://ac27641101.github.io/eLearning/science-ch3/?preview=reward1)
-- [自然 CH3・3 小時](https://ac27641101.github.io/eLearning/science-ch3/?preview=reward2)
-- [自然 CH4・1 小時](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward1)
-- [自然 CH4・3 小時](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward2)
+家長想先看卡片、又不想幫孩子解鎖時，用預覽網址（只會打開預覽，不會寫下獲得日期）：
+
+- [社會 CH3・30 分鐘](https://ac27641101.github.io/eLearning/social-ch3/?preview=reward1)
+- [社會 CH3・60 分鐘](https://ac27641101.github.io/eLearning/social-ch3/?preview=reward2)
+- [社會 CH4・30 分鐘](https://ac27641101.github.io/eLearning/social-g5/?preview=reward1)
+- [社會 CH4・60 分鐘](https://ac27641101.github.io/eLearning/social-g5/?preview=reward2)
+- [自然 CH3・30 分鐘](https://ac27641101.github.io/eLearning/science-ch3/?preview=reward1)
+- [自然 CH3・60 分鐘](https://ac27641101.github.io/eLearning/science-ch3/?preview=reward2)
+- [自然 CH4・30 分鐘](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward1)
+- [自然 CH4・60 分鐘](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward2)
