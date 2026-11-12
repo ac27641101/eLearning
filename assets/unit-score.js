@@ -1,6 +1,8 @@
 /* 每個小單元自己的 30 顆星、3 次計分、獎勵日期。
    舊的整章星星（formosa-g5-stars、social-ch3-stars 等）完全不讀。
-   預覽獎勵卡不會寫入獲得日期。 */
+   預覽獎勵卡不會寫入獲得日期。
+   清除星星會把各次星星改成 0、清掉獎勵日期和沒算完的 run。
+   已經用掉的計分次數（scores 的長度）留在這台裝置上，不會變回 3 次。 */
 (function (root) {
   const STAR_MAX = 30;
   const ATTEMPT_LIMIT = 3;
@@ -196,9 +198,19 @@
     box.setItem(storageKey(chapter, unitId), JSON.stringify(normalize(state)));
   }
 
+  /* 清掉這一單元的星星和獎勵日期，也可以丟掉還沒算完的 run。
+     計分次數看 scores 的長度：長度留下，數字改成 0，所以用過的次數不會回來。
+     一次都還沒計分時，整筆刪掉（只會清掉 run 或獎勵）。其他單元的 key 不動。 */
   function clear(chapter, unitId, storage) {
     const box = storage || root.localStorage;
-    box.removeItem(storageKey(chapter, unitId));
+    const prev = load(chapter, unitId, box);
+    if (!prev.scores.length) {
+      box.removeItem(storageKey(chapter, unitId));
+      return;
+    }
+    const kept = emptyState();
+    kept.scores = prev.scores.map(() => 0);
+    save(chapter, unitId, kept, box);
   }
 
   /* 預覽只產生畫面用的日期文字，不讀寫紀錄。 */

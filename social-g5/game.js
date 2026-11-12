@@ -189,7 +189,7 @@ function renderRewards(u){
   const st = loadScore(u);
   const b = S.best(st);
   const hint = $('rewardHint');
-  const text = S.hintText(b);
+  const text = S.isPractice(st) ? '' : S.hintText(b);
   hint.hidden = !text;
   hint.textContent = text;
   const status = $('scoreStatus');
@@ -342,6 +342,7 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
+  btns.push({label: '⬅ 回科目', value: 'subjects', cls: 'wood'});
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
   else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
@@ -357,6 +358,7 @@ async function finishLevel(){
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
+  else if (v === 'subjects') location.href = '../';
   else openUnit(curUnit);
 }
 
@@ -525,7 +527,7 @@ $('restartRunBtn').addEventListener('click', async () => {
 $('resetBtn').addEventListener('click', async () => {
   if (!curUnit) return;
   const ok = await showModal({icon: '🧹', title: '清除這一單元的星星？', center: true,
-    html: '這一單元的星星、3 次分數，還有獎勵卡日期，都會清掉。其他單元不會動。',
+    html: '這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。',
     buttons: [{label: '確定清除', value: true, cls: 'red'}, {label: '取消', value: false, cls: 'stone'}]});
   if (!ok) return;
   S.clear(CHAPTER, curUnit.id);

@@ -183,13 +183,21 @@
     else showSubjects();
   });
 
-  window.addEventListener('popstate', function () {
+  /* 沒有 hash，或明確停在 subjects 時，打開五科頁。
+     只有孩子真的點了科目（#/social、#/science 等）才打開該科的單元清單。 */
+  function subjectFromHash() {
     var id = (location.hash || '').replace(/^#\/?/, '');
-    if (known[id]) showChapters(id);
+    if (!id || id === 'subjects') return '';
+    return known[id] ? id : '';
+  }
+
+  window.addEventListener('popstate', function () {
+    var id = subjectFromHash();
+    if (id) showChapters(id);
     else showSubjects();
   });
 
-  var startId = (location.hash || '').replace(/^#\/?/, '');
-  if (known[startId]) showChapters(startId);
+  var startId = subjectFromHash();
+  if (startId) showChapters(startId);
   else showSubjects();
 })();
