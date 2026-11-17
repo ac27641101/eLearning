@@ -319,7 +319,7 @@ async function timeUp(){
   game.over = true;
   const v = await showModal({icon: '⏰', title: '時間到！', center: true,
     html: '這一關還沒玩完，不會扣掉計分機會，也不會先鎖住這次的分數。可以再挑戰這一關。',
-    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回單元', value: 'unit', cls: 'wood'}]});
+    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回小單元', value: 'unit', cls: 'wood'}]});
   v === 'again' ? startLevel(curLevel) : openUnit(curUnit);
 }
 
@@ -341,7 +341,7 @@ async function finishLevel(){
   const idx = curUnit.levels.indexOf(curLevel), next = curUnit.levels[idx + 1];
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
-  btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
+  btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
   btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
