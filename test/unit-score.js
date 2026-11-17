@@ -203,8 +203,14 @@ function testCopyAndSubjectLinks() {
     }
     assert.ok(js.includes(dialog), unit);
     assert.ok(!js.includes('3 次分數'), unit);
-    assert.ok(js.includes("{label: '⬅ 回科目', value: 'subjects', cls: 'wood'}"), unit);
-    assert.ok(js.includes("else if (v === 'subjects') location.href = '../';"), unit);
+    assert.ok(js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit);
+    assert.ok(js.includes("else if (v === 'lobby') renderLobby();"), unit);
+    assert.ok(!js.includes("location.href = '../'"), unit + ' finish dialog stays in the unit');
+    const finish = js.slice(js.indexOf('async function finishLevel'), js.indexOf('function makeDraggable'));
+    const rewardAt = finish.indexOf('for (const id of result.unlocked)');
+    const lobbyAt = finish.indexOf("v === 'lobby'");
+    assert.ok(rewardAt > 0 && lobbyAt > rewardAt, unit + ' shows a new reward card before leaving');
+    if (unit === 'social-ch3') assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'stone'}"), unit);
   });
 
   const hub = fs.readFileSync(path.join(root, 'assets/hub.js'), 'utf8');

@@ -342,7 +342,7 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回科目', value: 'subjects', cls: 'wood'});
+  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
   else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
@@ -358,7 +358,7 @@ async function finishLevel(){
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
-  else if (v === 'subjects') location.href = '../';
+  else if (v === 'lobby') renderLobby();
   else openUnit(curUnit);
 }
 
