@@ -179,8 +179,10 @@
   });
 
   backBtn.addEventListener('click', function () {
-    if (location.hash) history.back();
-    else showSubjects();
+    if (location.hash && location.hash !== '#/subjects') {
+      history.pushState({ subject: '' }, '', location.pathname + location.search + '#/subjects');
+    }
+    showSubjects();
   });
 
   /* 沒有 hash，或明確停在 subjects 時，打開五科頁。
