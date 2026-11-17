@@ -569,6 +569,10 @@ $('homeBtn').addEventListener('click', () => {
   else if ($('unit').classList.contains('active') && curLesson) openLesson(curLesson);
   else renderLobby();
 });
+$('lessonBackBtn').addEventListener('click', () => {
+  Sound.click();
+  renderLobby();
+});
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
 $('restartRunBtn').addEventListener('click', async () => {

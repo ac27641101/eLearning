@@ -191,11 +191,15 @@ function testCopyAndSubjectLinks() {
     assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science'), unit + ' deeper screens stay hash-less');
     assert.ok(!deeper.includes('回課程'), unit + ' deeper screens stay 回科目');
     const links = deeper.match(/<a class="px-btn wood notes-btn" href="\.\.\/">⬅ 回科目<\/a>/g) || [];
-    assert.strictEqual(links.length, unit === 'social-ch3' ? 2 : 1, unit);
+    assert.strictEqual(links.length, 1, unit);
     assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <a class="px-btn wood notes-btn" href="../">⬅ 回科目</a>'), unit);
     if (unit === 'social-ch3') {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
-      assert.ok(lesson.includes('href="../">⬅ 回科目</a>'), 'lesson screen');
+      assert.ok(lesson.includes('⬅ 回第三課'), 'lesson screen');
+      assert.ok(!lesson.includes('回科目'), 'lesson screen has no 回科目');
+      assert.ok(lesson.includes('id="lessonBackBtn"'), 'lesson back is an in-page button');
+      assert.ok(!lesson.includes('href="../"'), 'lesson back is not a ../ link');
+      assert.ok(js.includes("$('lessonBackBtn').addEventListener('click', () => {\n  Sound.click();\n  renderLobby();\n});"), 'lesson back uses the lobby navigation');
     }
     assert.ok(js.includes(dialog), unit);
     assert.ok(!js.includes('3 次分數'), unit);
