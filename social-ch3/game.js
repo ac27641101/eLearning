@@ -315,7 +315,7 @@ function openUnit(u){
       <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
   const unitBack = $('unitBackBtn');
-  unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';
+  if (unitBack) unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
 }
@@ -571,11 +571,13 @@ $('homeBtn').addEventListener('click', () => {
   else if ($('unit').classList.contains('active') && curLesson) openLesson(curLesson);
   else renderLobby();
 });
-$('lessonBackBtn').addEventListener('click', () => {
+const lessonBackBtn = $('lessonBackBtn');
+if (lessonBackBtn) lessonBackBtn.addEventListener('click', () => {
   Sound.click();
   renderLobby();
 });
-$('unitBackBtn').addEventListener('click', () => {
+const unitBackBtn = $('unitBackBtn');
+if (unitBackBtn) unitBackBtn.addEventListener('click', () => {
   Sound.click();
   if (curLesson) openLesson(curLesson);
   else renderLobby();

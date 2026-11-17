@@ -177,6 +177,9 @@ function testCopyAndSubjectLinks() {
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
+    ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
+      assert.ok(html.includes(file + '?v=20261118a'), unit + ' ' + file);
+    });
     const subjectHash = unit.startsWith('social-') ? '../#/social' : '../#/science';
     const otherHash = unit.startsWith('social-') ? '#/science' : '#/social';
     assert.ok(!html.includes(otherHash), unit + ' should not link to the other subject');
@@ -196,11 +199,11 @@ function testCopyAndSubjectLinks() {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
       assert.ok(lesson.includes('id="lessonBackBtn">⬅ 回單元</button>'), 'lesson screen');
       assert.ok(!lesson.includes('回第三課'), 'lesson screen');
-      assert.ok(js.includes("$('lessonBackBtn').addEventListener('click', () => {\n  Sound.click();\n  renderLobby();\n});"), 'lesson back uses the lobby navigation');
-      assert.ok(js.includes("unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';"), 'lesson units name the lesson');
-      assert.ok(js.includes("$('unitBackBtn').addEventListener('click', () => {\n  Sound.click();\n  if (curLesson) openLesson(curLesson);\n  else renderLobby();\n});"), 'unit back is one level up');
+      assert.ok(js.includes("if (lessonBackBtn) lessonBackBtn.addEventListener('click', () => {\n  Sound.click();\n  renderLobby();\n});"), 'lesson back uses the lobby navigation');
+      assert.ok(js.includes("if (unitBack) unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';"), 'lesson units name the lesson');
+      assert.ok(js.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => {\n  Sound.click();\n  if (curLesson) openLesson(curLesson);\n  else renderLobby();\n});"), 'unit back is one level up');
     } else {
-      assert.ok(js.includes("$('unitBackBtn').addEventListener('click', () => { Sound.click(); renderLobby(); });"), unit + ' unit back returns to the chapter lobby');
+      assert.ok(js.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => { Sound.click(); renderLobby(); });"), unit + ' unit back returns to the chapter lobby');
     }
     assert.ok(js.includes(dialog), unit);
     assert.ok(!js.includes('3 次分數'), unit);
@@ -227,6 +230,11 @@ function testCopyAndSubjectLinks() {
   assert.ok(hub.includes('showSubjects();'));
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
+  ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
+    assert.ok(hubPage.includes(file + '?v=20261118a'), 'hub ' + file);
+  });
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  assert.ok(readme.includes('?v=20261118a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);

@@ -17,6 +17,10 @@
 
 新單元只要把資料夾放進這個專案，再在 `assets/hub.js` 的 `UNITS` 陣列加一筆（填好 `subject`）。新頁面請在 `<head>` 引入 `assets/gate.js`（路徑用相對路徑）。
 
+## 發佈時要換版本
+
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118a`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+
 ## 獎勵
 
 每個小單元自己計分，不會把整章的星星加在一起換獎勵。舊的整章星星不會用來解鎖。
