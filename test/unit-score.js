@@ -185,21 +185,22 @@ function testCopyAndSubjectLinks() {
       : html.indexOf('id="unit"');
     const lobby = html.slice(html.indexOf('id="lobby"'), lobbyEnd);
     const deeper = html.slice(lobbyEnd);
-    assert.ok(lobby.includes('href="' + subjectHash + '">⬅ 回課程</a>'), unit + ' lobby');
-    assert.ok(!lobby.includes('回科目'), unit + ' lobby stays 回課程');
-    assert.strictEqual((lobby.match(/⬅ 回課程/g) || []).length, 1, unit + ' lobby');
-    assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science'), unit + ' deeper screens stay hash-less');
-    assert.ok(!deeper.includes('回課程'), unit + ' deeper screens stay 回科目');
-    const links = deeper.match(/<a class="px-btn wood notes-btn" href="\.\.\/">⬅ 回科目<\/a>/g) || [];
-    assert.strictEqual(links.length, 1, unit);
-    assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <a class="px-btn wood notes-btn" href="../">⬅ 回科目</a>'), unit);
+    assert.ok(lobby.includes('href="' + subjectHash + '">⬅ 回科目</a>'), unit + ' lobby');
+    assert.ok(!lobby.includes('回課程'), unit + ' lobby is 回科目');
+    assert.strictEqual((lobby.match(/⬅ 回科目/g) || []).length, 1, unit + ' lobby');
+    assert.deepStrictEqual(html.match(/href="\.\.\/[^"]*"/g) || [], ['href="' + subjectHash + '"'], unit + ' only the lobby links upward');
+    assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science'), unit + ' deeper screens stay in the unit');
+    assert.ok(!deeper.includes('回課程') && !deeper.includes('回科目'), unit + ' deeper labels name the next level up');
+    assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <button type="button" class="px-btn wood notes-btn" id="unitBackBtn">⬅ 回單元</button>'), unit);
     if (unit === 'social-ch3') {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
-      assert.ok(lesson.includes('⬅ 回第三課'), 'lesson screen');
-      assert.ok(!lesson.includes('回科目'), 'lesson screen has no 回科目');
-      assert.ok(lesson.includes('id="lessonBackBtn"'), 'lesson back is an in-page button');
-      assert.ok(!lesson.includes('href="../"'), 'lesson back is not a ../ link');
+      assert.ok(lesson.includes('id="lessonBackBtn">⬅ 回單元</button>'), 'lesson screen');
+      assert.ok(!lesson.includes('回第三課'), 'lesson screen');
       assert.ok(js.includes("$('lessonBackBtn').addEventListener('click', () => {\n  Sound.click();\n  renderLobby();\n});"), 'lesson back uses the lobby navigation');
+      assert.ok(js.includes("unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';"), 'lesson units name the lesson');
+      assert.ok(js.includes("$('unitBackBtn').addEventListener('click', () => {\n  Sound.click();\n  if (curLesson) openLesson(curLesson);\n  else renderLobby();\n});"), 'unit back is one level up');
+    } else {
+      assert.ok(js.includes("$('unitBackBtn').addEventListener('click', () => { Sound.click(); renderLobby(); });"), unit + ' unit back returns to the chapter lobby');
     }
     assert.ok(js.includes(dialog), unit);
     assert.ok(!js.includes('3 次分數'), unit);

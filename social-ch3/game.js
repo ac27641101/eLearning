@@ -314,6 +314,8 @@ function openUnit(u){
       <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
       <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
+  const unitBack = $('unitBackBtn');
+  unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
 }
@@ -572,6 +574,11 @@ $('homeBtn').addEventListener('click', () => {
 $('lessonBackBtn').addEventListener('click', () => {
   Sound.click();
   renderLobby();
+});
+$('unitBackBtn').addEventListener('click', () => {
+  Sound.click();
+  if (curLesson) openLesson(curLesson);
+  else renderLobby();
 });
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });

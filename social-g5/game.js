@@ -513,6 +513,7 @@ const RENDER = {
 };
 
 $('homeBtn').addEventListener('click', () => { Sound.click(); $('play').classList.contains('active') && curUnit ? openUnit(curUnit) : renderLobby(); });
+$('unitBackBtn').addEventListener('click', () => { Sound.click(); renderLobby(); });
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
 $('restartRunBtn').addEventListener('click', async () => {
