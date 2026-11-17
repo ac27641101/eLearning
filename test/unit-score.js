@@ -175,19 +175,28 @@ function testCopyAndSubjectLinks() {
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4'].forEach(unit => {
     const html = fs.readFileSync(path.join(root, unit, 'index.html'), 'utf8');
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
-    assert.ok(!html.includes('#/social'), unit);
-    assert.ok(!html.includes('#/science'), unit);
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
-    const links = html.match(/<a class="px-btn wood notes-btn" href="\.\.\/">⬅ 回科目<\/a>/g) || [];
-    assert.strictEqual(links.length, unit === 'social-ch3' ? 3 : 2, unit);
+    const subjectHash = unit.startsWith('social-') ? '../#/social' : '../#/science';
+    const otherHash = unit.startsWith('social-') ? '#/science' : '#/social';
+    assert.ok(!html.includes(otherHash), unit + ' should not link to the other subject');
+    const lobbyEnd = html.indexOf('id="lesson"') > 0 && unit === 'social-ch3'
+      ? html.indexOf('id="lesson"')
+      : html.indexOf('id="unit"');
+    const lobby = html.slice(html.indexOf('id="lobby"'), lobbyEnd);
+    const deeper = html.slice(lobbyEnd);
+    assert.ok(lobby.includes('href="' + subjectHash + '">⬅ 回課程</a>'), unit + ' lobby');
+    assert.ok(!lobby.includes('回科目'), unit + ' lobby stays 回課程');
+    assert.strictEqual((lobby.match(/⬅ 回課程/g) || []).length, 1, unit + ' lobby');
+    assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science'), unit + ' deeper screens stay hash-less');
+    assert.ok(!deeper.includes('回課程'), unit + ' deeper screens stay 回科目');
+    const links = deeper.match(/<a class="px-btn wood notes-btn" href="\.\.\/">⬅ 回科目<\/a>/g) || [];
+    assert.strictEqual(links.length, unit === 'social-ch3' ? 2 : 1, unit);
     assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <a class="px-btn wood notes-btn" href="../">⬅ 回科目</a>'), unit);
     if (unit === 'social-ch3') {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
       assert.ok(lesson.includes('href="../">⬅ 回科目</a>'), 'lesson screen');
     }
-    const lobby = html.slice(html.indexOf('id="lobby"'), html.indexOf('id="lesson"') > 0 && unit === 'social-ch3' ? html.indexOf('id="lesson"') : html.indexOf('id="unit"'));
-    assert.ok(lobby.includes('href="../">⬅ 回科目</a>'), unit + ' lobby');
     assert.ok(js.includes(dialog), unit);
     assert.ok(!js.includes('3 次分數'), unit);
     assert.ok(js.includes("{label: '⬅ 回科目', value: 'subjects', cls: 'wood'}"), unit);
@@ -198,6 +207,11 @@ function testCopyAndSubjectLinks() {
   assert.ok(hub.includes("id === 'subjects'"));
   assert.ok(hub.includes('function showSubjects'));
   assert.ok(hub.includes('function showChapters'));
+  assert.ok(hub.includes('if (id) showChapters(id);'));
+  assert.ok(hub.includes("location.pathname + location.search + '#/subjects'"));
+  assert.ok(hub.includes('showSubjects();'));
+  const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
