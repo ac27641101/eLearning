@@ -319,7 +319,7 @@ async function timeUp(){
   game.over = true;
   const v = await showModal({icon: '⏰', title: '時間到！', center: true,
     html: '這一關還沒玩完，不會扣掉計分機會，也不會先鎖住這次的分數。可以再挑戰這一關。',
-    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回單元', value: 'unit', cls: 'wood'}]});
+    buttons: [{label: '🔁 再挑戰', value: 'again', cls: 'orange'}, {label: '📋 回小單元', value: 'unit', cls: 'wood'}]});
   v === 'again' ? startLevel(curLevel) : openUnit(curUnit);
 }
 
@@ -341,8 +341,8 @@ async function finishLevel(){
   const idx = curUnit.levels.indexOf(curLevel), next = curUnit.levels[idx + 1];
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
-  btns.push({label: '📋 回單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回科目', value: 'subjects', cls: 'wood'});
+  btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
+  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
   else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
@@ -358,7 +358,7 @@ async function finishLevel(){
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
-  else if (v === 'subjects') location.href = '../';
+  else if (v === 'lobby') renderLobby();
   else openUnit(curUnit);
 }
 
@@ -513,6 +513,7 @@ const RENDER = {
 };
 
 $('homeBtn').addEventListener('click', () => { Sound.click(); $('play').classList.contains('active') && curUnit ? openUnit(curUnit) : renderLobby(); });
+$('unitBackBtn').addEventListener('click', () => { Sound.click(); renderLobby(); });
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
 $('restartRunBtn').addEventListener('click', async () => {

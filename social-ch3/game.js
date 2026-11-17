@@ -314,6 +314,8 @@ function openUnit(u){
       <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
       <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
+  const unitBack = $('unitBackBtn');
+  unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
 }
@@ -393,7 +395,7 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回科目', value: 'subjects', cls: 'wood'});
+  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
   else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
@@ -409,7 +411,7 @@ async function finishLevel(){
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
-  else if (v === 'subjects') location.href = '../';
+  else if (v === 'lobby') renderLobby();
   else openUnit(curUnit);
 }
 
@@ -572,6 +574,11 @@ $('homeBtn').addEventListener('click', () => {
 $('lessonBackBtn').addEventListener('click', () => {
   Sound.click();
   renderLobby();
+});
+$('unitBackBtn').addEventListener('click', () => {
+  Sound.click();
+  if (curLesson) openLesson(curLesson);
+  else renderLobby();
 });
 $('muteBtn').addEventListener('click', () => { const m = Sound.toggle(); $('muteBtn').textContent = m ? '🔇' : '🔊'; });
 $('sayBtn').addEventListener('click', () => { Sound.unlock(); speak($('lvAsk').innerHTML); });
