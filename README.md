@@ -41,6 +41,8 @@
 
 26 顆星是 30 分鐘，30 顆星是 60 分鐘。每個小單元分開算，再把分鐘加總。
 
+頁面上方的「全家 Switch」只加 ysc 和 ytc。`test@kids.local` 是測試用的孩子帳號，登入方式和計分規則與 ysc、ytc 相同。家長頁把它收在最下面的「測試帳號」裡，分鐘不計入全家合計。測試帳號清單在 `assets/gate.js` 的 `TEST_ACCOUNTS`。
+
 家長可以重置某一個小單元（會先問一次）。重置之後星星、次數、獎勵和模擬考分數都回到可以再計分 3 次的狀態。
 
 孩子第一次登入時，會寫下 `users/{uid}`：`{account:'ysc', role:'child'}`，家長頁才找得到人。家長登入寫的是 `role:'parent'`，不會被列成孩子。家長信箱集中在 `assets/gate.js` 的 `PARENT_EMAILS`。
@@ -52,13 +54,13 @@
 1. **Authentication → Settings → Authorized domains** 加入 `ac27641101.github.io`。沒有這一步，GitHub Pages 上的登入會被拒絕。`localhost` 預設就有。
 2. **Firestore Database → Rules** 貼上這個專案根目錄的 `firestore.rules`，然後發布。資料庫目前是 production 模式，沒貼規則之前所有讀寫都會被拒絕。
 
-Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids.local`。家長帳號是 `ac27641101@gmail.com`、`smc@kids.local`。若 Authentication 裡還沒有 `smc@kids.local`，請先新增這個使用者。
+Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids.local`，測試帳號是 `test@kids.local`。家長帳號是 `ac27641101@gmail.com`、`smc@kids.local`。若 Authentication 裡還沒有 `smc@kids.local` 或 `test@kids.local`，請先新增這兩個使用者。
 
 規則的意思：孩子只能讀寫自己的 `users/{自己的 uid}/**`。`ac27641101@gmail.com` 和 `smc@kids.local` 可以讀全部 `users/**`，也可以寫（用來重置）。這兩個信箱不能把自己寫成 `role:child`。孩子不能把計分次數變少。
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118c`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118d`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 

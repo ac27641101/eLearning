@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261118c'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261118d'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -233,10 +233,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261118c'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261118d'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261118c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261118d') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +249,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261118c'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261118d'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -417,6 +417,25 @@ function testLoginAccountAndRules() {
   assert.strictEqual(smc.account, 'smc');
   assert.strictEqual(smc.displayName, 'smc');
   assert.notStrictEqual(smc.role, 'child');
+  assert.deepStrictEqual(A.TEST_ACCOUNTS, ['test@kids.local']);
+  assert.strictEqual(A.loginEmail('test'), 'test@kids.local');
+  assert.strictEqual(A.loginEmail('Test'), 'test@kids.local');
+  assert.strictEqual(A.isTestAccount('test'), true);
+  assert.strictEqual(A.isTestAccount('test@kids.local'), true);
+  assert.strictEqual(A.isTestAccount('ysc'), false);
+  assert.strictEqual(A.isTestAccount('smc@kids.local'), false);
+  assert.strictEqual(A.roleFromEmail('test@kids.local'), 'child');
+  assert.strictEqual(A.displayName('test', 'child'), 'test');
+  const tester = A.profileFromUser({ uid: 'test-uid', email: 'Test@kids.local' });
+  assert.strictEqual(tester.role, 'child');
+  assert.strictEqual(tester.account, 'test');
+  assert.strictEqual(tester.email, 'test@kids.local');
+  const parentJs = fs.readFileSync(path.join(root, 'parent/parent.js'), 'utf8');
+  assert.ok(parentJs.includes('<summary>測試帳號</summary>'));
+  assert.ok(parentJs.includes('class="test-fold"'));
+  assert.ok(parentJs.includes('function familySwitchMinutes'));
+  assert.ok(parentJs.includes('if (isTestProfile(child)) return;'));
+  assert.ok(parentJs.includes('window.ELAccount.TEST_ACCOUNTS'));
   assert.strictEqual(A.authErrorText('auth/invalid-credential'), '帳號或密碼不對喔，再試一次吧！');
   assert.strictEqual(A.authErrorText('auth/wrong-password'), '帳號或密碼不對喔，再試一次吧！');
   assert.strictEqual(A.authErrorText('auth/user-not-found'), '帳號或密碼不對喔，再試一次吧！');
@@ -426,6 +445,7 @@ function testLoginAccountAndRules() {
   assert.ok(!gate.includes('2dea8d8d4c4577d1ab7253f686cc20b4cd847d33db6216334bd59fe541c7c47a'));
   const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
   assert.ok(rules.includes("request.auth.token.email in ['ac27641101@gmail.com','smc@kids.local']"));
+  assert.ok(!rules.includes('test@kids.local'));
   assert.ok(!rules.includes('dad@kids.local') && !rules.includes('mom@kids.local'));
   assert.ok(rules.includes('!isParent()'));
   assert.ok(rules.includes('request.resource.data.scores.size() >= resource.data.scores.size()'));

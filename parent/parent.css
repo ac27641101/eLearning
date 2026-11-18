@@ -28,6 +28,18 @@
 .reset-btn:disabled{opacity:.6;cursor:default}
 .absent{margin:8px 0 0;color:#5a3000}
 .demo-banner{margin-top:8px;background:#fff3d6;padding:10px 14px;text-align:center;color:#5a3000}
+.family-total{margin:8px 0 0;background:#fff8e6;padding:10px 14px;text-align:center;font-size:20px}
+.family-total b{font-size:28px}
+.test-fold{
+  margin-top:18px;background:#e6e2d8;color:#6d675c;
+  border:3px solid #8d877c;border-radius:8px;padding:8px 12px 12px;
+}
+.test-fold summary{
+  cursor:pointer;font-size:18px;font-weight:900;color:#6d675c;padding:6px 2px;
+}
+.test-fold .kid{background:#f4f1ea;color:#6d675c}
+.test-fold .kid h2,.test-fold .total-min,.test-fold .total-min b,.test-fold .account{color:#6d675c}
+.test-fold .subject-block h3,.test-fold .chapter-block h4,.test-fold .score-name{color:#6d675c}
 @media (max-width:800px){
   .score-row{grid-template-columns:1fr 1fr}
   .score-name,.row-end{grid-column:1 / -1}

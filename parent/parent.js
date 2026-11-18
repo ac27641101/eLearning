@@ -271,9 +271,15 @@
 
   function render(children) {
     viewing = children;
+    var parts = splitFamily(children);
     var html = '';
     if (demo) html += '<p class="demo-banner px">這是預覽資料，不是真正的成績。</p>';
-    children.forEach(function (child) { html += childHtml(child); });
+    html += '<p class="family-total px">全家 Switch 一共 <b>' + familySwitchMinutes(parts.family) + '</b> 分鐘</p>';
+    parts.family.forEach(function (child) { html += childHtml(child); });
+    if (parts.tests.length) {
+      html += '<details class="test-fold"><summary>測試帳號</summary>' +
+        parts.tests.map(childHtml).join('') + '</details>';
+    }
     rootEl.innerHTML = html;
     bindResets();
   }
@@ -305,8 +311,50 @@
           'english-u34__u4': pack('english-u34', 'u4', [20, 24, 22]),
           'english-u34__exam': pack('english-u34', 'exam', [30], { rewards: { reward1: '2026-11-06', reward2: '2026-11-06' }, examBest: 72 })
         }
+      },
+      {
+        account: 'test',
+        email: 'test@kids.local',
+        uid: 'demo-test',
+        scores: {
+          'science-ch3__u2': pack('science-ch3', 'u2', [30], { rewards: { reward1: '2026-11-07', reward2: '2026-11-07' } })
+        }
       }
     ];
+  }
+
+  function testRoster() {
+    var emails = (window.ELAccount && window.ELAccount.TEST_ACCOUNTS) || [];
+    return emails.map(function (email) {
+      var at = String(email).indexOf('@');
+      var account = at > 0 ? String(email).slice(0, at) : String(email);
+      return { account: account, email: email };
+    });
+  }
+
+  function isTestProfile(profile) {
+    var accounts = window.ELAccount;
+    if (!profile || !accounts || typeof accounts.isTestAccount !== 'function') return false;
+    return accounts.isTestAccount(profile.email) || accounts.isTestAccount(profile.account);
+  }
+
+  function splitFamily(children) {
+    var family = [];
+    var tests = [];
+    children.forEach(function (child) {
+      if (isTestProfile(child)) tests.push(child);
+      else family.push(child);
+    });
+    return { family: family, tests: tests };
+  }
+
+  function familySwitchMinutes(children) {
+    var total = 0;
+    children.forEach(function (child) {
+      if (isTestProfile(child)) return;
+      total += totalMinutes(child);
+    });
+    return total;
   }
 
   function isParentProfile(profile) {
@@ -335,11 +383,20 @@
       return { account: child.account, email: child.email, uid: null, scores: null };
     });
     profiles.forEach(function (profile) {
-      if (isParentProfile(profile)) return;
+      if (isParentProfile(profile) || isTestProfile(profile)) return;
       if (!profile.account || seen[profile.account]) return;
       list.push(profile);
     });
-    return list;
+    var tests = testRoster().map(function (child) {
+      var found = byAccount[child.account];
+      if (found) {
+        seen[child.account] = true;
+        found.email = found.email || child.email;
+        return found;
+      }
+      return { account: child.account, email: child.email, uid: null, scores: null };
+    });
+    return list.concat(tests);
   }
 
   function loadLive() {
