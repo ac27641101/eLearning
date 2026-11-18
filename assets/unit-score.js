@@ -2,7 +2,11 @@
    舊的整章星星（formosa-g5-stars、social-ch3-stars 等）完全不讀。
    預覽獎勵卡不會寫入獲得日期。
    清除星星會把各次星星改成 0、清掉獎勵日期和沒算完的 run。
-   已經用掉的計分次數（scores 的長度）留在這台裝置上，不會變回 3 次。 */
+   已經用掉的計分次數（scores 的長度）不會變回 3 次。
+   登入之後，雲端文件 users/{uid}/scores/{chapter__unitId} 才是準的。
+   這台裝置只留快取 el-score-v3:<uid>:<chapter>:<unitId>。舊的 el-score-v2 不讀、不搬。
+   rev 用來認出家長重置：孩子寫不回比較舊的那一代。
+   examBest 是英文模擬考最好的卷面分數（0–100），有寫進來才會留。 */
 (function (root) {
   const STAR_MAX = 30;
   const ATTEMPT_LIMIT = 3;
@@ -10,12 +14,211 @@
   const NEED_MINUTES_60 = 30;
   const REWARD_IDS = ['reward1', 'reward2'];
 
-  function storageKey(chapter, unitId) {
-    return 'el-score-v2:' + chapter + ':' + unitId;
+  let boundUid = null;
+  let shadow = {};
+  let writer = null;
+  let ready = false;
+  const waiters = [];
+
+  function storageKey(chapter, unitId, uid) {
+    const id = chapter + ':' + unitId;
+    return uid ? 'el-score-v3:' + uid + ':' + id : 'el-score-v3:' + id;
+  }
+
+  function docId(chapter, unitId) {
+    return String(chapter) + '__' + String(unitId);
+  }
+
+  function scoresAllZero(scores) {
+    return !!(scores && scores.length) && scores.every(n => n === 0);
+  }
+
+  function prefixEqual(base, next) {
+    if (!next || next.length < base.length) return false;
+    for (let i = 0; i < base.length; i++) {
+      if (next[i] !== base[i]) return false;
+    }
+    return true;
+  }
+
+  /* cloud 是雲端那一代。rev 比較新的話，整筆以雲端為準（家長剛重置）。
+     同一代裡，次數不會變少；清星星只把同一長度改成 0。
+     前面的分數被改掉時，不採用這次寫入的星星。examBest 只留比較高的。 */
+  function mergeState(local, cloud) {
+    const next = normalize(local);
+    if (cloud == null) return next;
+    const prev = normalize(cloud);
+    if ((prev.rev || 0) > (next.rev || 0)) return prev;
+
+    const exams = [];
+    if (typeof next.examBest === 'number') exams.push(next.examBest);
+    if (typeof prev.examBest === 'number') exams.push(prev.examBest);
+    const examBest = exams.length ? Math.max.apply(null, exams) : undefined;
+    const sameLength = next.scores.length === prev.scores.length;
+    const clearing = sameLength && prev.scores.length > 0 && scoresAllZero(next.scores) && prev.scores.some(n => n > 0);
+
+    let scores;
+    let rewards;
+    let run;
+    if (clearing) {
+      scores = next.scores.slice();
+      rewards = {};
+      run = null;
+    } else if (next.scores.length < prev.scores.length || !prefixEqual(prev.scores, next.scores)) {
+      scores = prev.scores.slice();
+      rewards = Object.assign({}, prev.rewards);
+      run = prev.run;
+    } else {
+      scores = next.scores.slice(0, ATTEMPT_LIMIT);
+      rewards = Object.assign({}, prev.rewards, next.rewards);
+      run = next.run;
+    }
+    const out = { scores: scores, rewards: rewards, run: run, rev: prev.rev || 0 };
+    if (typeof examBest === 'number') out.examBest = examBest;
+    const merged = normalize(out);
+    if (!clearing) {
+      REWARD_IDS.forEach(id => {
+        if (!merged.rewards[id] && prev.rewards[id]) merged.rewards[id] = prev.rewards[id];
+      });
+    }
+    const top = best(merged);
+    if (top < NEED_MINUTES_30) delete merged.rewards.reward1;
+    if (top < NEED_MINUTES_60) delete merged.rewards.reward2;
+    return merged;
+  }
+
+  function keyFor(chapter, unitId, storage) {
+    if (storage) return storageKey(chapter, unitId);
+    return storageKey(chapter, unitId, boundUid);
+  }
+
+  function resolveBox(storage) {
+    if (storage) return storage;
+    try {
+      if (root.localStorage) return root.localStorage;
+    } catch (e) { /* 隱私模式 */ }
+    if (!root.__elMemory) root.__elMemory = memoryStorage();
+    return root.__elMemory;
+  }
+
+  function readKey(box, key) {
+    try {
+      const raw = box.getItem(key);
+      return normalize(raw ? JSON.parse(raw) : null);
+    } catch (e) {
+      return emptyState();
+    }
+  }
+
+  function writeKey(box, key, state) {
+    box.setItem(key, JSON.stringify(normalize(state)));
+  }
+
+  function cloudFor(chapter, unitId, storage) {
+    if (storage && typeof storage.cloudGet === 'function') {
+      const value = storage.cloudGet(chapter, unitId);
+      return value == null ? null : value;
+    }
+    if (storage) return null;
+    const id = docId(chapter, unitId);
+    return Object.prototype.hasOwnProperty.call(shadow, id) ? shadow[id] : null;
+  }
+
+  function queueWrite(chapter, unitId, state) {
+    if (typeof writer !== 'function') return;
+    try {
+      const result = writer(chapter, unitId, state);
+      if (result && typeof result.then === 'function') result.then(function () {}, function () {});
+    } catch (e) { /* 寫入端自己處理失敗 */ }
+  }
+
+  function bindUid(uid) {
+    boundUid = uid || null;
+  }
+
+  function setCloudWriter(fn) {
+    writer = typeof fn === 'function' ? fn : null;
+  }
+
+  function noteCloud(chapter, unitId, raw, storage) {
+    const incoming = normalize(raw);
+    const id = docId(chapter, unitId);
+    let floor = incoming;
+    if (!storage && Object.prototype.hasOwnProperty.call(shadow, id)) {
+      floor = mergeState(shadow[id], incoming);
+    }
+    if (!storage) shadow[id] = floor;
+    const box = resolveBox(storage);
+    const key = keyFor(chapter, unitId, storage);
+    const merged = mergeState(readKey(box, key), floor);
+    writeKey(box, key, merged);
+    return merged;
+  }
+
+  function resetSession() {
+    boundUid = null;
+    shadow = {};
+    writer = null;
+    ready = false;
+    waiters.length = 0;
+    try { root.ELScoresReady = false; } catch (e) {}
+  }
+
+  function markReady() {
+    ready = true;
+    try { root.ELScoresReady = true; } catch (e) {}
+    if (root.document && typeof root.CustomEvent === 'function') {
+      root.document.dispatchEvent(new root.CustomEvent('el-scores-ready'));
+    }
+    const queued = waiters.splice(0);
+    queued.forEach(fn => {
+      try { fn(); } catch (e) {}
+    });
+  }
+
+  function whenReady(fn) {
+    if (typeof fn !== 'function') return;
+    if (ready) fn();
+    else waiters.push(fn);
+  }
+
+  function toCloud(chapter, unitId, state) {
+    const s = normalize(state);
+    const out = {
+      chapter: String(chapter),
+      unitId: String(unitId),
+      scores: s.scores,
+      rewards: s.rewards,
+      run: s.run,
+      rev: s.rev || 0,
+      updatedAt: new Date().toISOString()
+    };
+    if (typeof s.examBest === 'number') out.examBest = s.examBest;
+    return out;
+  }
+
+  function switchMinutes(state) {
+    const b = best(state);
+    if (b >= NEED_MINUTES_60) return 60;
+    if (b >= NEED_MINUTES_30) return 30;
+    return 0;
+  }
+
+  function summarize(state) {
+    const s = normalize(state);
+    return {
+      best: best(s),
+      attemptsUsed: attemptsUsed(s),
+      attemptsLeft: attemptsLeft(s),
+      switchMinutes: switchMinutes(s),
+      examBest: typeof s.examBest === 'number' ? s.examBest : null,
+      rev: s.rev || 0,
+      scores: s.scores.slice()
+    };
   }
 
   function emptyState() {
-    return { scores: [], rewards: {}, run: null };
+    return { scores: [], rewards: {}, run: null, rev: 0 };
   }
 
   function normalize(raw) {
@@ -41,6 +244,12 @@
         if (typeof n === 'number' && isFinite(n)) levels[id] = Math.max(0, Math.round(n));
       });
       s.run = { levels: levels };
+    }
+    if (typeof raw.examBest === 'number' && isFinite(raw.examBest)) {
+      s.examBest = Math.max(0, Math.min(100, Math.round(raw.examBest)));
+    }
+    if (typeof raw.rev === 'number' && isFinite(raw.rev) && raw.rev > 0) {
+      s.rev = Math.min(100000, Math.round(raw.rev));
     }
     return s;
   }
@@ -184,33 +393,56 @@
   }
 
   function load(chapter, unitId, storage) {
-    const box = storage || root.localStorage;
-    try {
-      const raw = box.getItem(storageKey(chapter, unitId));
-      return normalize(raw ? JSON.parse(raw) : null);
-    } catch (e) {
-      return emptyState();
-    }
+    const box = resolveBox(storage);
+    const key = keyFor(chapter, unitId, storage);
+    const local = readKey(box, key);
+    const cloud = cloudFor(chapter, unitId, storage);
+    if (cloud == null) return local;
+    const merged = mergeState(local, cloud);
+    if (JSON.stringify(merged) !== JSON.stringify(local)) writeKey(box, key, merged);
+    return merged;
   }
 
   function save(chapter, unitId, state, storage) {
-    const box = storage || root.localStorage;
-    box.setItem(storageKey(chapter, unitId), JSON.stringify(normalize(state)));
+    const box = resolveBox(storage);
+    const key = keyFor(chapter, unitId, storage);
+    const cloud = cloudFor(chapter, unitId, storage);
+    const next = cloud == null ? normalize(state) : mergeState(state, cloud);
+    if (storage && typeof storage.cloudSet === 'function') storage.cloudSet(chapter, unitId, next);
+    if (!storage) {
+      shadow[docId(chapter, unitId)] = normalize(next);
+      queueWrite(chapter, unitId, next);
+    }
+    writeKey(box, key, next);
   }
 
   /* 清掉這一單元的星星和獎勵日期，也可以丟掉還沒算完的 run。
      計分次數看 scores 的長度：長度留下，數字改成 0，所以用過的次數不會回來。
-     一次都還沒計分時，整筆刪掉（只會清掉 run 或獎勵）。其他單元的 key 不動。 */
+     一次都還沒計分時，本地那筆刪掉（只會清掉 run 或獎勵）。其他單元的 key 不動。
+     雲端若已有這一代的紀錄，會把星星寫成空的，rev 維持不變。模擬考分數留下。 */
   function clear(chapter, unitId, storage) {
-    const box = storage || root.localStorage;
-    const prev = load(chapter, unitId, box);
+    const box = resolveBox(storage);
+    const key = keyFor(chapter, unitId, storage);
+    const prev = load(chapter, unitId, storage);
     if (!prev.scores.length) {
-      box.removeItem(storageKey(chapter, unitId));
+      box.removeItem(key);
+      const empty = emptyState();
+      empty.rev = prev.rev || 0;
+      if (typeof prev.examBest === 'number') empty.examBest = prev.examBest;
+      const dirty = prev.run || Object.keys(prev.rewards).length;
+      if (dirty && storage && typeof storage.cloudSet === 'function') {
+        storage.cloudSet(chapter, unitId, normalize(empty));
+      } else if (dirty && !storage) {
+        shadow[docId(chapter, unitId)] = normalize(empty);
+        queueWrite(chapter, unitId, empty);
+      }
       return;
     }
     const kept = emptyState();
+    kept.rev = prev.rev || 0;
     kept.scores = prev.scores.map(() => 0);
-    save(chapter, unitId, kept, box);
+    if (typeof prev.examBest === 'number') kept.examBest = prev.examBest;
+    save(chapter, unitId, kept, storage);
   }
 
   /* 預覽只產生畫面用的日期文字，不讀寫紀錄。 */
@@ -319,6 +551,17 @@
     commitLevel: commitLevel,
     restartRun: restartRun,
     memoryStorage: memoryStorage,
+    docId: docId,
+    mergeState: mergeState,
+    toCloud: toCloud,
+    switchMinutes: switchMinutes,
+    summarize: summarize,
+    bindUid: bindUid,
+    setCloudWriter: setCloudWriter,
+    noteCloud: noteCloud,
+    resetSession: resetSession,
+    markReady: markReady,
+    whenReady: whenReady,
     load: load,
     save: save,
     clear: clear,

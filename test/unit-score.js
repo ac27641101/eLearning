@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261118b'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261118c'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -233,14 +233,207 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261118b'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261118c'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261118b') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261118c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
   assert.strictEqual(S.STAR_MAX, 30);
+  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
+    const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
+    assert.ok(js.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"), unit);
+  });
+  const english = fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8');
+  assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
+  const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
+  ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
+    assert.ok(parentPage.includes(file + '?v=20261118c'), 'parent ' + file);
+  });
+  assert.ok(parentPage.includes('⬅ 回學習島'));
+}
+
+function cloudBox(initial) {
+  const local = S.memoryStorage();
+  const cloud = JSON.parse(JSON.stringify(initial || {}));
+  local.cloudGet = (chapter, unitId) => {
+    const key = chapter + '/' + unitId;
+    return cloud[key] ? JSON.parse(JSON.stringify(cloud[key])) : null;
+  };
+  local.cloudSet = (chapter, unitId, state) => {
+    const key = chapter + '/' + unitId;
+    const prev = cloud[key];
+    if (prev && state.scores.length < prev.scores.length) {
+      throw new Error('attempts decreased');
+    }
+    cloud[key] = JSON.parse(JSON.stringify(S.normalize(state)));
+  };
+  local.cloudDump = () => cloud;
+  return local;
+}
+
+function testIgnoresOldLocalKey() {
+  const box = S.memoryStorage();
+  box.setItem('el-score-v2:science-ch3:u1', JSON.stringify({
+    scores: [30, 30, 30],
+    rewards: { reward1: '2026-01-01' },
+    run: null
+  }));
+  const loaded = S.load('science-ch3', 'u1', box);
+  assert.deepStrictEqual(loaded.scores, []);
+  assert.strictEqual(S.attemptsUsed(loaded), 0);
+  assert.ok(S.storageKey('science-ch3', 'u1').indexOf('el-score-v2') !== 0);
+  assert.ok(S.storageKey('science-ch3', 'u1', 'uid').indexOf('el-score-v3:uid:') === 0);
+}
+
+function testCloudAttemptsSurviveLocalWipe() {
+  const box = cloudBox({
+    'science-ch3/u1': { scores: [28, 30], rewards: { reward1: '2026-11-01', reward2: '2026-11-02' }, run: null, rev: 0 }
+  });
+  box.removeItem(S.storageKey('science-ch3', 'u1'));
+  const loaded = S.load('science-ch3', 'u1', box);
+  assert.deepStrictEqual(loaded.scores, [28, 30]);
+  assert.strictEqual(S.attemptsUsed(loaded), 2);
+  assert.strictEqual(S.attemptsLeft(loaded), 1);
+  assert.strictEqual(S.switchMinutes(loaded), 60);
+
+  S.clear('science-ch3', 'u1', box);
+  const cleared = S.load('science-ch3', 'u1', box);
+  assert.deepStrictEqual(cleared.scores, [0, 0]);
+  assert.strictEqual(S.attemptsUsed(cleared), 2);
+  assert.strictEqual(S.attemptsLeft(cleared), 1);
+  assert.strictEqual(S.best(cleared), 0);
+  assert.strictEqual(S.switchMinutes(cleared), 0);
+  assert.deepStrictEqual(cleared.rewards, {});
+  assert.deepStrictEqual(box.cloudDump()['science-ch3/u1'].scores, [0, 0]);
+
+  S.save('science-ch3', 'u1', S.emptyState(), box);
+  const kept = S.load('science-ch3', 'u1', box);
+  assert.deepStrictEqual(kept.scores, [0, 0]);
+  assert.strictEqual(S.attemptsUsed(kept), 2);
+
+  const again = finishRun(kept, 30);
+  S.save('science-ch3', 'u1', again, box);
+  const third = S.load('science-ch3', 'u1', box);
+  assert.deepStrictEqual(third.scores, [0, 0, 30]);
+  assert.strictEqual(S.attemptsLeft(third), 0);
+  assert.strictEqual(S.best(third), 30);
+  assert.strictEqual(S.switchMinutes(third), 60);
+}
+
+function testCloudRejectsTamperedPrefix() {
+  const box = cloudBox({
+    'social-g5/u1': { scores: [10, 20], rewards: {}, run: null, rev: 0 }
+  });
+  S.save('social-g5', 'u1', { scores: [30, 30, 30], rewards: { reward2: '2026-11-08' }, run: null }, box);
+  const loaded = S.load('social-g5', 'u1', box);
+  assert.deepStrictEqual(loaded.scores, [10, 20]);
+  assert.strictEqual(S.attemptsLeft(loaded), 1);
+  assert.deepStrictEqual(loaded.rewards, {});
+  assert.deepStrictEqual(box.cloudDump()['social-g5/u1'].scores, [10, 20]);
+}
+
+function testResetGenerationDropsStaleAttempts() {
+  const box = cloudBox({
+    'science-ch4/u2': { scores: [], rewards: {}, run: null, rev: 2 }
+  });
+  box.setItem(S.storageKey('science-ch4', 'u2'), JSON.stringify({
+    scores: [30, 30, 30], rewards: { reward1: '2026-01-01', reward2: '2026-01-02' }, run: null, rev: 0
+  }));
+  const loaded = S.load('science-ch4', 'u2', box);
+  assert.deepStrictEqual(loaded.scores, []);
+  assert.strictEqual(loaded.rev, 2);
+  assert.strictEqual(S.attemptsLeft(loaded), 3);
+  S.save('science-ch4', 'u2', { scores: [30], rewards: {}, run: null, rev: 0 }, box);
+  assert.deepStrictEqual(S.load('science-ch4', 'u2', box).scores, []);
+  assert.strictEqual(box.cloudDump()['science-ch4/u2'].rev, 2);
+}
+
+function testExamBestAndSwitchMinutes() {
+  assert.strictEqual(S.switchMinutes({ scores: [25], rewards: {}, run: null }), 0);
+  assert.strictEqual(S.switchMinutes({ scores: [26], rewards: {}, run: null }), 30);
+  assert.strictEqual(S.switchMinutes({ scores: [29], rewards: {}, run: null }), 30);
+  assert.strictEqual(S.switchMinutes({ scores: [30], rewards: {}, run: null }), 60);
+  const merged = S.mergeState(
+    { scores: [26], rewards: {}, run: null, examBest: 80, rev: 0 },
+    { scores: [26], rewards: { reward1: '2026-11-01' }, run: null, examBest: 90, rev: 0 }
+  );
+  assert.strictEqual(merged.examBest, 90);
+  assert.ok(merged.rewards.reward1);
+  const unearned = S.mergeState(
+    { scores: [10, 30], rewards: { reward1: '2026-11-01', reward2: '2026-11-02' }, run: null, rev: 0 },
+    { scores: [10], rewards: {}, run: null, rev: 0 }
+  );
+  assert.deepStrictEqual(unearned.scores, [10, 30]);
+  assert.strictEqual(unearned.rewards.reward1, '2026-11-01');
+  assert.strictEqual(unearned.rewards.reward2, '2026-11-02');
+  const tooSoon = S.mergeState(
+    { scores: [26], rewards: { reward2: '2026-11-02' }, run: null, rev: 0 },
+    { scores: [26], rewards: {}, run: null, rev: 0 }
+  );
+  assert.ok(!tooSoon.rewards.reward2);
+  const cleared = S.mergeState(
+    { scores: [0], rewards: {}, run: null, examBest: 80, rev: 0 },
+    { scores: [26], rewards: { reward1: '2026-11-01' }, run: null, examBest: 70, rev: 0 }
+  );
+  assert.deepStrictEqual(cleared.scores, [0]);
+  assert.deepStrictEqual(cleared.rewards, {});
+  assert.strictEqual(cleared.examBest, 80);
+  assert.strictEqual(S.attemptsUsed(cleared), 1);
+  const payload = S.toCloud('english-u34', 'exam', cleared);
+  assert.strictEqual(payload.chapter + '__' + payload.unitId, S.docId('english-u34', 'exam'));
+  assert.strictEqual(payload.examBest, 80);
+  assert.strictEqual(payload.rev, 0);
+  assert.ok(payload.updatedAt);
+  assert.strictEqual(S.normalize({ examBest: 140, scores: [] }).examBest, 100);
+  assert.strictEqual(S.normalize({ examBest: -4, scores: [] }).examBest, 0);
+}
+
+function testLoginAccountAndRules() {
+  require(path.join(root, 'assets/gate.js'));
+  const A = global.ELAccount;
+  assert.deepStrictEqual(A.PARENT_EMAILS, [
+    'ac27641101@gmail.com',
+    'smc@kids.local'
+  ]);
+  assert.strictEqual(A.loginEmail('ysc'), 'ysc@kids.local');
+  assert.strictEqual(A.loginEmail('YTC'), 'ytc@kids.local');
+  assert.strictEqual(A.loginEmail('smc'), 'smc@kids.local');
+  assert.strictEqual(A.loginEmail('SMC'), 'smc@kids.local');
+  assert.strictEqual(A.loginEmail(' ac27641101@gmail.com '), 'ac27641101@gmail.com');
+  assert.strictEqual(A.roleFromEmail('ac27641101@gmail.com'), 'parent');
+  assert.strictEqual(A.roleFromEmail('smc@kids.local'), 'parent');
+  assert.strictEqual(A.roleFromEmail('ysc@kids.local'), 'child');
+  assert.strictEqual(A.roleFromEmail('ytc@kids.local'), 'child');
+  assert.strictEqual(A.roleFromEmail('dad@kids.local'), 'child');
+  assert.strictEqual(A.roleFromEmail('mom@kids.local'), 'child');
+  assert.strictEqual(A.displayName('ysc', 'child'), 'ysc');
+  assert.strictEqual(A.displayName('ytc', 'child'), 'ytc');
+  assert.strictEqual(A.displayName('smc', 'parent'), 'smc');
+  assert.strictEqual(A.displayName('ac27641101@gmail.com', 'parent'), '家長');
+  const smc = A.profileFromUser({ uid: 'smc-uid', email: 'SMC@kids.local' });
+  assert.strictEqual(smc.role, 'parent');
+  assert.strictEqual(smc.account, 'smc');
+  assert.strictEqual(smc.displayName, 'smc');
+  assert.notStrictEqual(smc.role, 'child');
+  assert.strictEqual(A.authErrorText('auth/invalid-credential'), '帳號或密碼不對喔，再試一次吧！');
+  assert.strictEqual(A.authErrorText('auth/wrong-password'), '帳號或密碼不對喔，再試一次吧！');
+  assert.strictEqual(A.authErrorText('auth/user-not-found'), '帳號或密碼不對喔，再試一次吧！');
+  const gate = fs.readFileSync(path.join(root, 'assets/gate.js'), 'utf8');
+  assert.ok(gate.includes('browserLocalPersistence'));
+  assert.ok(gate.includes("html.el-locked body{visibility:hidden !important}"));
+  assert.ok(!gate.includes('2dea8d8d4c4577d1ab7253f686cc20b4cd847d33db6216334bd59fe541c7c47a'));
+  const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
+  assert.ok(rules.includes("request.auth.token.email in ['ac27641101@gmail.com','smc@kids.local']"));
+  assert.ok(!rules.includes('dad@kids.local') && !rules.includes('mom@kids.local'));
+  assert.ok(rules.includes('!isParent()'));
+  assert.ok(rules.includes('request.resource.data.scores.size() >= resource.data.scores.size()'));
+  assert.ok(rules.includes('request.resource.data.rev == resource.data.rev'));
+  assert.ok(rules.includes('allow read, write: if false'));
+  const hub = fs.readFileSync(path.join(root, 'assets/hub.js'), 'utf8');
+  assert.ok(hub.includes("getElementById('parentLink').hidden = auth.role !== 'parent'"));
+  assert.ok(hub.includes('家長頁'));
 }
 
 testThreeScoresStayUsed();
@@ -249,4 +442,10 @@ testTwoScoresLeaveOneChance();
 testRunOnlyDoesNotSpendAnAttempt();
 testPreviewDoesNotWrite();
 testCopyAndSubjectLinks();
+testIgnoresOldLocalKey();
+testCloudAttemptsSurviveLocalWipe();
+testCloudRejectsTamperedPrefix();
+testResetGenerationDropsStaleAttempts();
+testExamBestAndSwitchMinutes();
+testLoginAccountAndRules();
 console.log('unit-score tests passed');
