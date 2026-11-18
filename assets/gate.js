@@ -1,6 +1,7 @@
 /* 每一頁共用的登入。Firebase Auth（email/password，local persistence）。
    沒有 @ 的帳號會補上 @kids.local，所以小朋友打 ysc，媽媽打 smc。
-   家長信箱只維護 PARENT_EMAILS 這一份。這個檔在 <head> 裡同步執行，先把畫面鎖住。 */
+   家長信箱只維護 PARENT_EMAILS 這一份。測試小孩在 TEST_ACCOUNTS，規則和一般孩子相同。
+   這個檔在 <head> 裡同步執行，先把畫面鎖住。 */
 (function (root) {
   'use strict';
 
@@ -8,7 +9,10 @@
     'ac27641101@gmail.com',
     'smc@kids.local'
   ];
-  var DISPLAY_NAMES = { ysc: 'ysc', ytc: 'ytc', smc: 'smc' };
+  var TEST_ACCOUNTS = [
+    'test@kids.local'
+  ];
+  var DISPLAY_NAMES = { ysc: 'ysc', ytc: 'ytc', smc: 'smc', test: 'test' };
   var FIREBASE_VERSION = '12.6.0';
 
   var firebaseConfig = {
@@ -29,6 +33,14 @@
 
   function isParentEmail(email) {
     return PARENT_EMAILS.indexOf(String(email || '').trim().toLowerCase()) !== -1;
+  }
+
+  function isTestAccount(accountOrEmail) {
+    var value = String(accountOrEmail || '').trim().toLowerCase();
+    if (!value) return false;
+    if (TEST_ACCOUNTS.indexOf(value) !== -1) return true;
+    if (value.indexOf('@') === -1 && TEST_ACCOUNTS.indexOf(value + '@kids.local') !== -1) return true;
+    return false;
   }
 
   function accountFromEmail(email) {
@@ -73,9 +85,11 @@
 
   root.ELAccount = {
     PARENT_EMAILS: PARENT_EMAILS,
+    TEST_ACCOUNTS: TEST_ACCOUNTS,
     DISPLAY_NAMES: DISPLAY_NAMES,
     loginEmail: loginEmail,
     isParentEmail: isParentEmail,
+    isTestAccount: isTestAccount,
     accountFromEmail: accountFromEmail,
     roleFromEmail: roleFromEmail,
     displayName: displayName,
