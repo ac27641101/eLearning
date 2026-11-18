@@ -157,7 +157,7 @@ function testPreviewDoesNotWrite() {
   assert.strictEqual(S.earned(S.load('social-g5', 'preview', box), 'reward1'), false);
   assert.strictEqual(S.earned(S.load('social-g5', 'preview', box), 'reward2'), false);
 
-  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4'].forEach(unit => {
+  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
     const src = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     const start = src.indexOf('function showRewardCard');
     const end = src.indexOf('function renderRewards');
@@ -172,17 +172,19 @@ function testPreviewDoesNotWrite() {
 
 function testCopyAndSubjectLinks() {
   const dialog = '這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。';
-  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4'].forEach(unit => {
+  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
     const html = fs.readFileSync(path.join(root, unit, 'index.html'), 'utf8');
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261118a'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261118b'), unit + ' ' + file);
     });
-    const subjectHash = unit.startsWith('social-') ? '../#/social' : '../#/science';
-    const otherHash = unit.startsWith('social-') ? '#/science' : '#/social';
-    assert.ok(!html.includes(otherHash), unit + ' should not link to the other subject');
+    const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
+    const subjectHash = '../#/' + subject;
+    ['social', 'science', 'english'].forEach(s => {
+      if (s !== subject) assert.ok(!html.includes('#/' + s), unit + ' should not link to ' + s);
+    });
     const lobbyEnd = html.indexOf('id="lesson"') > 0 && unit === 'social-ch3'
       ? html.indexOf('id="lesson"')
       : html.indexOf('id="unit"');
@@ -192,7 +194,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!lobby.includes('回課程'), unit + ' lobby is 回科目');
     assert.strictEqual((lobby.match(/⬅ 回科目/g) || []).length, 1, unit + ' lobby');
     assert.deepStrictEqual(html.match(/href="\.\.\/[^"]*"/g) || [], ['href="' + subjectHash + '"'], unit + ' only the lobby links upward');
-    assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science'), unit + ' deeper screens stay in the unit');
+    assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science') && !deeper.includes('#/english'), unit + ' deeper screens stay in the unit');
     assert.ok(!deeper.includes('回課程') && !deeper.includes('回科目'), unit + ' deeper labels name the next level up');
     assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <button type="button" class="px-btn wood notes-btn" id="unitBackBtn">⬅ 回單元</button>'), unit);
     if (unit === 'social-ch3') {
@@ -231,10 +233,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261118a'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261118b'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261118a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261118b') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
