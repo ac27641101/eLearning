@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261118d'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261118e'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -233,10 +233,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261118d'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261118e'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261118d') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261118e') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +249,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261118d'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261118e'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -442,7 +442,9 @@ function testLoginAccountAndRules() {
   const gate = fs.readFileSync(path.join(root, 'assets/gate.js'), 'utf8');
   assert.ok(gate.includes('browserLocalPersistence'));
   assert.ok(gate.includes("html.el-locked body{visibility:hidden !important}"));
-  assert.ok(!gate.includes('2dea8d8d4c4577d1ab7253f686cc20b4cd847d33db6216334bd59fe541c7c47a'));
+  assert.ok(!gate.includes('小朋友輸入帳號就好'));
+  assert.ok(!gate.includes('class="el-hint"'));
+  assert.ok(!gate.includes('placeholder='));
   const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
   assert.ok(rules.includes("request.auth.token.email in ['ac27641101@gmail.com','smc@kids.local']"));
   assert.ok(!rules.includes('test@kids.local'));
