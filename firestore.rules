@@ -1,0 +1,154 @@
+rules_version = '2';
+// 學習島：孩子只能讀寫自己的 users/{uid}/**。
+// 家長信箱可以讀全部 users/**，也可以寫（重置小單元）。
+// 家長不能把自己寫成 role:child，所以不會出現在孩子清單。
+// 孩子不能把計分次數變少，也不能把 rev 改掉（家長重置會把 rev 加 1）。
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isParent() {
+      return signedIn() && request.auth.token.email in ['ac27641101@gmail.com','smc@kids.local'];
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function scoreExists(uid, scoreId) {
+      return exists(/databases/$(database)/documents/users/$(uid)/scores/$(scoreId));
+    }
+    function userExists(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
+    }
+    function maxOf(scores) {
+      return scores.size() == 0 ? 0
+        : scores.size() == 1 ? scores[0]
+        : scores.size() == 2 ? (scores[0] > scores[1] ? scores[0] : scores[1])
+        : (scores[0] > scores[1]
+            ? (scores[0] > scores[2] ? scores[0] : scores[2])
+            : (scores[1] > scores[2] ? scores[1] : scores[2]));
+    }
+    function rewardsEarned(data) {
+      return data.rewards.keys().hasOnly(['reward1', 'reward2'])
+        && (!('reward1' in data.rewards) || (data.rewards.reward1 is string && data.rewards.reward1.size() > 0 && data.rewards.reward1.size() < 40 && maxOf(data.scores) >= 26))
+        && (!('reward2' in data.rewards) || (data.rewards.reward2 is string && data.rewards.reward2.size() > 0 && data.rewards.reward2.size() < 40 && maxOf(data.scores) >= 30));
+    }
+    function validShape(scoreId) {
+      return request.resource.data.keys().hasOnly(['chapter', 'unitId', 'scores', 'rewards', 'run', 'rev', 'examBest', 'updatedAt'])
+        && request.resource.data.chapter is string
+        && request.resource.data.unitId is string
+        && request.resource.data.chapter.size() > 0
+        && request.resource.data.chapter.size() < 40
+        && request.resource.data.unitId.size() > 0
+        && request.resource.data.unitId.size() < 60
+        && request.resource.data.chapter.matches('^[A-Za-z0-9_-]+$')
+        && request.resource.data.unitId.matches('^[A-Za-z0-9_-]+$')
+        && scoreId == request.resource.data.chapter + '__' + request.resource.data.unitId
+        && request.resource.data.scores is list
+        && request.resource.data.scores.size() <= 3
+        && (request.resource.data.scores.size() < 1 || (request.resource.data.scores[0] is int && request.resource.data.scores[0] >= 0 && request.resource.data.scores[0] <= 30))
+        && (request.resource.data.scores.size() < 2 || (request.resource.data.scores[1] is int && request.resource.data.scores[1] >= 0 && request.resource.data.scores[1] <= 30))
+        && (request.resource.data.scores.size() < 3 || (request.resource.data.scores[2] is int && request.resource.data.scores[2] >= 0 && request.resource.data.scores[2] <= 30))
+        && request.resource.data.rewards is map
+        && rewardsEarned(request.resource.data)
+        && request.resource.data.rev is int
+        && request.resource.data.rev >= 0
+        && request.resource.data.rev < 100000
+        && (request.resource.data.run == null || (request.resource.data.run is map && request.resource.data.run.keys().hasOnly(['levels']) && request.resource.data.run.levels is map && request.resource.data.run.levels.size() <= 8))
+        && (!('examBest' in request.resource.data) || (request.resource.data.examBest is int && request.resource.data.examBest >= 0 && request.resource.data.examBest <= 100))
+        && request.resource.data.updatedAt is string
+        && request.resource.data.updatedAt.size() > 8
+        && request.resource.data.updatedAt.size() < 40;
+    }
+    function allZero(scores) {
+      return (scores.size() < 1 || scores[0] == 0)
+        && (scores.size() < 2 || scores[1] == 0)
+        && (scores.size() < 3 || scores[2] == 0);
+    }
+    function prefixKept(uid, scoreId) {
+      return (resource.data.scores.size() < 1 || request.resource.data.scores[0] == resource.data.scores[0])
+        && (resource.data.scores.size() < 2 || request.resource.data.scores[1] == resource.data.scores[1])
+        && (resource.data.scores.size() < 3 || request.resource.data.scores[2] == resource.data.scores[2]);
+    }
+    function attemptsOk(uid, scoreId) {
+      return (!scoreExists(uid, scoreId) && request.resource.data.scores.size() <= 1)
+        || (scoreExists(uid, scoreId)
+            && request.resource.data.scores.size() >= resource.data.scores.size()
+            && request.resource.data.scores.size() <= resource.data.scores.size() + 1);
+    }
+    function historyOk(uid, scoreId) {
+      return !scoreExists(uid, scoreId)
+        || prefixKept(uid, scoreId)
+        || (request.resource.data.scores.size() == resource.data.scores.size() && allZero(request.resource.data.scores));
+    }
+    function rewardsKept(uid, scoreId) {
+      return !scoreExists(uid, scoreId)
+        || !('rewards' in resource.data)
+        || allZero(request.resource.data.scores)
+        || (
+          (!('reward1' in resource.data.rewards) || 'reward1' in request.resource.data.rewards)
+          && (!('reward2' in resource.data.rewards) || 'reward2' in request.resource.data.rewards)
+        );
+    }
+    function examOk(uid, scoreId) {
+      return !scoreExists(uid, scoreId)
+        || !('examBest' in resource.data)
+        || ('examBest' in request.resource.data && request.resource.data.examBest >= resource.data.examBest);
+    }
+    function revOk(uid, scoreId) {
+      return (!scoreExists(uid, scoreId) && request.resource.data.rev == 0)
+        || (scoreExists(uid, scoreId) && request.resource.data.rev == resource.data.rev);
+    }
+    function childScoreWrite(uid, scoreId) {
+      return isOwner(uid)
+        && validShape(scoreId)
+        && attemptsOk(uid, scoreId)
+        && historyOk(uid, scoreId)
+        && rewardsKept(uid, scoreId)
+        && examOk(uid, scoreId)
+        && revOk(uid, scoreId);
+    }
+    function validProfile(uid) {
+      return request.resource.data.keys().hasOnly(['account', 'role', 'email', 'displayName', 'updatedAt'])
+        && request.resource.data.email is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() < 40
+        && request.resource.data.updatedAt is string
+        && request.resource.data.updatedAt.size() > 8
+        && request.resource.data.updatedAt.size() < 40
+        && (
+          (isParent()
+            && request.auth.uid == uid
+            && request.resource.data.role == 'parent'
+            && (request.resource.data.account == request.auth.token.email
+              || request.auth.token.email == request.resource.data.account + '@kids.local'))
+          || (!isParent()
+            && request.resource.data.role == 'child'
+            && request.resource.data.account is string
+            && request.resource.data.account.matches('^[a-z0-9._+-]+$')
+            && request.resource.data.account + '@kids.local' == request.auth.token.email
+            && (!userExists(uid) || resource.data.role == 'child')
+            && (!userExists(uid) || resource.data.account == request.resource.data.account))
+        );
+    }
+
+    match /users/{uid} {
+      allow get: if isOwner(uid) || isParent();
+      allow list: if isParent();
+      allow create, update: if isOwner(uid) && validProfile(uid);
+
+      match /scores/{scoreId} {
+        allow get, list: if isOwner(uid) || isParent();
+        allow create, update: if childScoreWrite(uid, scoreId);
+        allow create, update: if isParent() && validShape(scoreId);
+        allow delete: if isParent();
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

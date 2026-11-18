@@ -257,7 +257,8 @@ function portalScore(u){
   const st = loadScore(u);
   const b = S.best(st);
   const tag = S.earned(st, 'reward2') ? '60分鐘' : (S.earned(st, 'reward1') ? '30分鐘' : '');
-  return `<span class="p-score"><b>★ ${b}</b> / ${S.STAR_MAX}${tag ? '・' + tag : ''}</span>`;
+  const exam = u.id === 'exam' && typeof st.examBest === 'number' ? `<span class="p-score">考卷 ${st.examBest} / 100</span>` : '';
+  return `<span class="p-score"><b>★ ${b}</b> / ${S.STAR_MAX}${tag ? '・' + tag : ''}</span>${exam}`;
 }
 
 function showModal({icon = '', title = '', html = '', center = false, buttons = [{label: '好！', value: true}]}){
@@ -416,7 +417,7 @@ function openUnit(u){
   curUnit = u;
   const st = loadScore(u);
   $('unitTitle').textContent = `${u.icon} ${u.name}`;
-  $('unitChip').textContent = `最好 ★ ${S.best(st)} / ${S.STAR_MAX}`;
+  $('unitChip').textContent = `最好 ★ ${S.best(st)} / ${S.STAR_MAX}` + (u.id === 'exam' && typeof st.examBest === 'number' ? `　考卷 ${st.examBest} / 100` : '');
   $('unitDesc').innerHTML = u.desc;
   $('rulesStrip').innerHTML = S.RULES_HTML;
   renderRewards(u);
@@ -1053,6 +1054,16 @@ function gradePaper(lv, qs, single, groups){
   writePaper(saved);
   const sum = summarize(saved);
   game.paperSummary = sum;
+  if (sum.all && curUnit && curUnit.id === 'exam') {
+    const st = loadScore(curUnit);
+    if (!S.isPractice(st)) {
+      const n = Math.max(0, Math.min(100, Math.round(sum.got)));
+      if (!(typeof st.examBest === 'number' && st.examBest >= n)) {
+        st.examBest = n;
+        saveScore(curUnit, st);
+      }
+    }
+  }
   showGraded(lv, items, sum);
 }
 function renderPaper(lv){
@@ -1151,6 +1162,16 @@ if (window.speechSynthesis){
   speechSynthesis.addEventListener('voiceschanged', () => speechSynthesis.getVoices());
 }
 renderLobby();
+function refreshAfterScores(){
+  if ($('play').classList.contains('active')) return;
+  const lesson = $('lesson');
+  if ($('unit').classList.contains('active') && curUnit) openUnit(curUnit);
+  else if (lesson && lesson.classList.contains('active') && typeof curLesson !== 'undefined' && curLesson) openLesson(curLesson);
+  else renderLobby();
+}
+document.addEventListener('el-scores-ready', refreshAfterScores);
+document.addEventListener('el-scores-updated', refreshAfterScores);
+if (window.ELScoresReady) refreshAfterScores();
 {
   const preview = S.rewardMeta(new URLSearchParams(location.search).get('preview'));
   if (preview) showRewardCard(preview, {celebrate: true, preview: true, unitName: '預覽'});

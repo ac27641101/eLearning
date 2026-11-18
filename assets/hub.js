@@ -209,4 +209,44 @@
   var startId = subjectFromHash();
   if (startId) showChapters(startId);
   else showSubjects();
+
+  function applySession(auth) {
+    var chip = document.getElementById('sessionChip');
+    if (!chip) return;
+    if (!auth) {
+      chip.hidden = true;
+      return;
+    }
+    chip.hidden = false;
+    document.getElementById('sessionName').textContent = auth.displayName || auth.account || '';
+    document.getElementById('parentLink').hidden = auth.role !== 'parent';
+  }
+
+  var bar = document.querySelector('.topbar');
+  if (bar && !document.getElementById('sessionChip')) {
+    var chip = document.createElement('div');
+    chip.id = 'sessionChip';
+    chip.className = 'session-chip';
+    chip.hidden = true;
+    var name = document.createElement('span');
+    name.id = 'sessionName';
+    var parentLink = document.createElement('a');
+    parentLink.id = 'parentLink';
+    parentLink.href = 'parent/';
+    parentLink.textContent = '家長頁';
+    parentLink.hidden = true;
+    var logout = document.createElement('button');
+    logout.type = 'button';
+    logout.id = 'logoutBtn';
+    logout.textContent = '登出';
+    logout.addEventListener('click', function () {
+      if (window.ELSignOut) window.ELSignOut();
+    });
+    chip.append(name, parentLink, logout);
+    bar.appendChild(chip);
+    applySession(window.ELAuth);
+    document.addEventListener('el-auth', function (event) {
+      applySession(event.detail || window.ELAuth);
+    });
+  }
 })();

@@ -36,7 +36,18 @@ h1.lobby-title{
   padding:6px 14px;border-radius:99px;line-height:1.5;max-width:36em;text-wrap:balance;
 }
 [hidden]{display:none !important}
-.topbar{display:flex;align-items:center;gap:8px}
+.topbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.session-chip{
+  display:flex;align-items:center;gap:6px;margin-left:auto;
+  background:rgba(255,255,255,.92);border:3px solid var(--ink);border-radius:999px;
+  padding:4px 6px 4px 12px;font-size:14px;font-weight:900;
+}
+.session-chip a,.session-chip button{
+  border:3px solid var(--ink);border-radius:999px;background:#c08a55;color:#fff;
+  font:900 14px/1 var(--font);padding:8px 10px;min-height:40px;text-decoration:none;cursor:pointer;
+}
+.session-chip a{background:#ff9800}
+.session-chip a:focus-visible,.session-chip button:focus-visible{outline:4px solid var(--orange);outline-offset:2px}
 .topbar .title{flex:1 1 auto;min-width:0}
 .back-btn{
   flex:0 0 auto;border:4px solid var(--ink);border-radius:10px;background:var(--wood);color:#fff;

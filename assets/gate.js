@@ -1,136 +1,200 @@
-/* 輕量入口：同一台裝置通過後，把 passed 記在 localStorage。
-   這只是輕輕擋一下，不是真正的安全措施。密碼只以 SHA-256 雜湊比對。 */
-(function () {
+/* 每一頁共用的登入。Firebase Auth（email/password，local persistence）。
+   沒有 @ 的帳號會補上 @kids.local，所以小朋友打 ysc，媽媽打 smc。
+   家長信箱只維護 PARENT_EMAILS 這一份。這個檔在 <head> 裡同步執行，先把畫面鎖住。 */
+(function (root) {
   'use strict';
 
-  var STORAGE_KEY = 'elearning-gate';
-  var PASSED = 'passed';
-  // UTF-8 SHA-256。要換密碼時只改這段雜湊，不要把密碼寫進檔案。
-  var PASS_HASH = '2dea8d8d4c4577d1ab7253f686cc20b4cd847d33db6216334bd59fe541c7c47a';
+  var PARENT_EMAILS = [
+    'ac27641101@gmail.com',
+    'smc@kids.local'
+  ];
+  var DISPLAY_NAMES = { ysc: 'ysc', ytc: 'ytc', smc: 'smc' };
+  var FIREBASE_VERSION = '12.6.0';
 
-  function alreadyPassed() {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === PASSED;
-    } catch (err) {
-      return false;
+  var firebaseConfig = {
+    apiKey: 'AIzaSyA_Ekniq-tpOR2RbTtlrjpPuBo3W8rLBCQ',
+    authDomain: 'elearning-6448b.firebaseapp.com',
+    projectId: 'elearning-6448b',
+    storageBucket: 'elearning-6448b.firebasestorage.app',
+    messagingSenderId: '61870775992',
+    appId: '1:61870775992:web:3ebd39741faf7588839e4d'
+  };
+
+  function loginEmail(typed) {
+    var value = String(typed || '').trim().toLowerCase();
+    if (!value) return '';
+    if (value.indexOf('@') === -1) return value + '@kids.local';
+    return value;
+  }
+
+  function isParentEmail(email) {
+    return PARENT_EMAILS.indexOf(String(email || '').trim().toLowerCase()) !== -1;
+  }
+
+  function accountFromEmail(email) {
+    var value = String(email || '').trim().toLowerCase();
+    var at = value.indexOf('@');
+    if (at > 0 && value.slice(at) === '@kids.local') return value.slice(0, at);
+    return value;
+  }
+
+  function roleFromEmail(email) {
+    return isParentEmail(email) ? 'parent' : 'child';
+  }
+
+  function displayName(account, role) {
+    if (DISPLAY_NAMES[account]) return DISPLAY_NAMES[account];
+    if (role === 'parent') return '家長';
+    return account || '';
+  }
+
+  function authErrorText(code) {
+    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-email') {
+      return '帳號或密碼不對喔，再試一次吧！';
     }
+    if (code === 'auth/too-many-requests') return '試太多次了，休息一下再來。';
+    if (code === 'auth/network-request-failed') return '網路連不上，請檢查網路再試一次。';
+    if (code === 'auth/unauthorized-domain') return '這個網站還沒加入登入名單。請爸爸到 Firebase 的 Authorized domains 加上 ac27641101.github.io。';
+    return '登入沒有成功，請再試一次。';
   }
 
-  if (alreadyPassed()) return;
+  function profileFromUser(user) {
+    var email = String(user && user.email || '').toLowerCase();
+    var role = roleFromEmail(email);
+    var account = accountFromEmail(email);
+    return {
+      uid: user.uid,
+      email: email,
+      account: account,
+      role: role,
+      displayName: displayName(account, role)
+    };
+  }
 
-  var style = document.createElement('style');
-  style.textContent = [
-    'html.el-locked,html.el-locked body{overflow:hidden}',
-    'html.el-locked body{visibility:hidden !important}',
-    'html.el-locked #el-gate,html.el-locked #el-gate *{visibility:visible !important}',
-    '#el-gate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;',
-    'padding:24px 16px;background:linear-gradient(180deg,#7cc8ff 0%,#b9e6ff 62%,#5dbb3f 62%,#5dbb3f 66%,#8b5a2b 66%);',
-    'font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC","WenQuanYi Micro Hei",sans-serif;',
-    'color:#232323;font-weight:700}',
-    '#el-gate *{box-sizing:border-box}',
-    '#el-gate .el-cloud{position:absolute;top:8%;left:0;width:120px;height:28px;background:#fff;opacity:.85;',
-    'box-shadow:24px -16px 0 #fff,56px -16px 0 #fff;pointer-events:none;animation:el-drift 60s linear infinite}',
-    '#el-gate .el-cloud.c2{top:18%;width:90px;animation-duration:80s;animation-delay:-30s}',
-    '@keyframes el-drift{from{transform:translateX(-200px)}to{transform:translateX(110vw)}}',
-    '#el-gate .el-card{position:relative;width:min(420px,100%);background:#fff8e6;border:4px solid #232323;border-radius:8px;',
-    'box-shadow:inset -5px -5px 0 rgba(0,0,0,.22),inset 5px 5px 0 rgba(255,255,255,.35),0 5px 0 rgba(0,0,0,.35);',
-    'padding:22px 18px 16px;text-align:center}',
-    '#el-gate .el-card.el-shake{animation:el-shake .4s}',
-    '@keyframes el-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}',
-    '#el-gate .el-icon{font-size:52px;line-height:1;margin-bottom:4px}',
-    '#el-gate h1{margin:0;font-size:28px;font-weight:900}',
-    '#el-gate .el-hint{margin:8px 0 14px;font-size:16px;line-height:1.5;color:#5a3000}',
-    '#el-gate label{display:block;text-align:left;font-size:15px;margin:0 0 6px}',
-    '#el-gate input{display:block;width:100%;border:4px solid #232323;border-radius:10px;background:#fff;',
-    'font:900 22px/1.2 inherit;padding:12px 14px;letter-spacing:.2em;text-align:center;',
-    'box-shadow:inset -4px -4px 0 rgba(0,0,0,.12),inset 4px 4px 0 rgba(255,255,255,.6)}',
-    '#el-gate input:focus{outline:4px solid #ff9800;outline-offset:2px}',
-    '#el-gate button{margin-top:12px;width:100%;border:4px solid #232323;border-radius:10px;padding:12px 16px;',
-    'font:900 20px/1 inherit;color:#fff;background:#5dbb3f;text-shadow:2px 2px 0 rgba(0,0,0,.35);cursor:pointer;',
-    'box-shadow:inset -5px -5px 0 rgba(0,0,0,.25),inset 5px 5px 0 rgba(255,255,255,.3),0 5px 0 rgba(0,0,0,.4);',
-    'touch-action:manipulation}',
-    '#el-gate button:active{transform:translateY(4px);box-shadow:inset -5px -5px 0 rgba(0,0,0,.25),inset 5px 5px 0 rgba(255,255,255,.3),0 1px 0 rgba(0,0,0,.4)}',
-    '#el-gate .el-msg{min-height:1.5em;margin:12px 0 0;font-size:16px;line-height:1.5;color:#b3261e}',
-    '@media (prefers-reduced-motion:reduce){#el-gate .el-cloud{animation:none}#el-gate .el-card.el-shake{animation:none}}'
-  ].join('');
-  document.head.appendChild(style);
-  document.documentElement.classList.add('el-locked');
+  root.ELAccount = {
+    PARENT_EMAILS: PARENT_EMAILS,
+    DISPLAY_NAMES: DISPLAY_NAMES,
+    loginEmail: loginEmail,
+    isParentEmail: isParentEmail,
+    accountFromEmail: accountFromEmail,
+    roleFromEmail: roleFromEmail,
+    displayName: displayName,
+    authErrorText: authErrorText,
+    profileFromUser: profileFromUser
+  };
 
-  function hex(buffer) {
-    var bytes = new Uint8Array(buffer);
-    var out = '';
-    for (var i = 0; i < bytes.length; i++) {
-      out += bytes[i].toString(16).padStart(2, '0');
+  if (typeof document === 'undefined') return;
+
+  var auth = null;
+  var authMod = null;
+  var db = null;
+  var fs = null;
+  var booted = false;
+  var busy = false;
+  var reloading = false;
+  var authSettled = false;
+
+  function firebaseUrl(name) {
+    return 'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/' + name + '.js';
+  }
+
+  function injectStyle() {
+    if (document.getElementById('el-gate-style')) return;
+    var style = document.createElement('style');
+    style.id = 'el-gate-style';
+    style.textContent = [
+      'html.el-locked,html.el-locked body{overflow:hidden}',
+      'html.el-locked body{visibility:hidden !important}',
+      'html.el-locked #el-gate,html.el-locked #el-gate *{visibility:visible !important}',
+      '#el-gate{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;',
+      'padding:24px 16px;background:linear-gradient(180deg,#7cc8ff 0%,#b9e6ff 62%,#5dbb3f 62%,#5dbb3f 66%,#8b5a2b 66%);',
+      'font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC","Heiti TC","WenQuanYi Micro Hei",sans-serif;',
+      'color:#232323;font-weight:700}',
+      '#el-gate *{box-sizing:border-box}',
+      '#el-gate .el-cloud{position:absolute;top:8%;left:0;width:120px;height:28px;background:#fff;opacity:.85;',
+      'box-shadow:24px -16px 0 #fff,56px -16px 0 #fff;pointer-events:none;animation:el-drift 60s linear infinite}',
+      '#el-gate .el-cloud.c2{top:18%;width:90px;animation-duration:80s;animation-delay:-30s}',
+      '@keyframes el-drift{from{transform:translateX(-200px)}to{transform:translateX(110vw)}}',
+      '#el-gate .el-card{position:relative;width:min(520px,100%);background:#fff8e6;border:4px solid #232323;border-radius:8px;',
+      'box-shadow:inset -5px -5px 0 rgba(0,0,0,.22),inset 5px 5px 0 rgba(255,255,255,.35),0 5px 0 rgba(0,0,0,.35);',
+      'padding:22px 18px 16px;text-align:center}',
+      '#el-gate .el-card.el-shake{animation:el-shake .4s}',
+      '@keyframes el-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}',
+      '#el-gate .el-icon{font-size:56px;line-height:1;margin-bottom:4px}',
+      '#el-gate h1{margin:0;font-size:32px;font-weight:900}',
+      '#el-gate .el-hint{margin:8px 0 14px;font-size:16px;line-height:1.5;color:#5a3000}',
+      '#el-gate label{display:block;text-align:left;font-size:18px;margin:12px 0 6px}',
+      '#el-gate input{display:block;width:100%;border:4px solid #232323;border-radius:12px;background:#fff;',
+      'font:900 22px/1.2 inherit;padding:14px 14px;text-align:center;min-height:56px;',
+      'box-shadow:inset -4px -4px 0 rgba(0,0,0,.12),inset 4px 4px 0 rgba(255,255,255,.6)}',
+      '#el-gate input:focus{outline:4px solid #ff9800;outline-offset:2px}',
+      '#el-gate button{margin-top:12px;width:100%;border:4px solid #232323;border-radius:12px;padding:14px 16px;min-height:56px;',
+      'font:900 22px/1 inherit;color:#fff;background:#5dbb3f;text-shadow:2px 2px 0 rgba(0,0,0,.35);cursor:pointer;',
+      'box-shadow:inset -5px -5px 0 rgba(0,0,0,.25),inset 5px 5px 0 rgba(255,255,255,.3),0 5px 0 rgba(0,0,0,.4);',
+      'touch-action:manipulation}',
+      '#el-gate button.el-secondary{background:#c08a55;min-height:52px;font-size:18px}',
+      '#el-gate button:active{transform:translateY(4px);box-shadow:inset -5px -5px 0 rgba(0,0,0,.25),inset 5px 5px 0 rgba(255,255,255,.3),0 1px 0 rgba(0,0,0,.4)}',
+      '#el-gate button:disabled{opacity:.7;cursor:default;transform:none}',
+      '#el-gate .el-loading{font-size:20px;margin:8px 0 0;color:#5a3000}',
+      '#el-gate .el-msg{min-height:1.5em;margin:12px 0 0;font-size:18px;line-height:1.5;color:#b3261e}',
+      '#el-gate [hidden]{display:none !important}',
+      '@media (prefers-reduced-motion:reduce){#el-gate .el-cloud{animation:none}#el-gate .el-card.el-shake{animation:none}}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function pageUsesScores() {
+    var scripts = document.getElementsByTagName('script');
+    for (var i = 0; i < scripts.length; i++) {
+      var src = scripts[i].getAttribute('src') || '';
+      if (src.indexOf('unit-score.js') !== -1) return true;
     }
-    return out;
+    return false;
   }
 
-  function sameHash(a, b) {
-    if (a.length !== b.length) return false;
-    var diff = 0;
-    for (var i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    return diff === 0;
-  }
-
-  function digitsOnly(value) {
-    return String(value).replace(/[０-９]/g, function (ch) {
-      return String.fromCharCode(ch.charCodeAt(0) - 0xFF10 + 0x30);
-    }).replace(/\s+/g, '');
+  function setInert(on) {
+    if (!document.body) return;
+    Array.prototype.forEach.call(document.body.children, function (el) {
+      if (el.id === 'el-gate') return;
+      if ('inert' in el) el.inert = on;
+    });
   }
 
   function showMessage(text) {
     var msg = document.getElementById('el-gate-msg');
     var card = document.querySelector('#el-gate .el-card');
-    if (msg) msg.textContent = text;
-    if (card) {
+    if (msg) msg.textContent = text || '';
+    if (text && card) {
       card.classList.remove('el-shake');
       void card.offsetWidth;
       card.classList.add('el-shake');
     }
   }
 
-  function unlock() {
-    try {
-      localStorage.setItem(STORAGE_KEY, PASSED);
-    } catch (err) { /* 記不住就下次再問 */ }
-    var gate = document.getElementById('el-gate');
-    if (gate) gate.remove();
-    Array.prototype.forEach.call(document.body.children, function (el) {
-      if ('inert' in el) el.inert = false;
-    });
-    document.documentElement.classList.remove('el-locked');
+  function showLoading(text) {
+    var loading = document.getElementById('el-gate-loading');
+    var form = document.getElementById('el-gate-form');
+    if (loading) {
+      loading.hidden = false;
+      loading.textContent = text || '正在確認是誰在玩…';
+    }
+    if (form) form.hidden = true;
   }
 
-  var busy = false;
-  async function onSubmit(event) {
-    event.preventDefault();
-    if (busy) return;
-    var input = document.getElementById('el-pass');
-    var value = digitsOnly(input ? input.value : '');
-    if (!value) {
-      showMessage('還沒輸入密碼喔，再試一次吧！');
-      if (input) input.focus();
-      return;
-    }
-    if (!window.crypto || !crypto.subtle) {
-      showMessage('這個畫面沒辦法檢查密碼，請改用一般的瀏覽器開啟網站。');
-      return;
-    }
-    busy = true;
-    try {
-      var digest = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
-      if (sameHash(digest, PASS_HASH)) {
-        unlock();
-        return;
-      }
-      showMessage('密碼不對喔，再試一次吧！');
-      if (input) {
-        input.value = '';
-        input.focus();
-      }
-    } finally {
-      busy = false;
-    }
+  function showForm() {
+    var loading = document.getElementById('el-gate-loading');
+    var form = document.getElementById('el-gate-form');
+    if (loading) loading.hidden = true;
+    if (form) form.hidden = false;
+    var account = document.getElementById('el-account');
+    if (account) account.focus();
+  }
+
+  function unlock() {
+    var gate = document.getElementById('el-gate');
+    if (gate) gate.remove();
+    setInert(false);
+    document.documentElement.classList.remove('el-locked');
   }
 
   function mount() {
@@ -142,32 +206,245 @@
     gate.setAttribute('aria-labelledby', 'el-gate-title');
     gate.innerHTML = [
       '<div class="el-cloud"></div><div class="el-cloud c2"></div>',
-      '<form id="el-gate-form" novalidate autocomplete="off">',
       '<div class="el-card">',
       '<div class="el-icon" aria-hidden="true">🧭</div>',
-      '<h1 id="el-gate-title">請輸入密碼</h1>',
-      '<p class="el-hint">請輸入數字密碼，就可以開始玩囉！</p>',
+      '<h1 id="el-gate-title">學習島</h1>',
+      '<p id="el-gate-loading" class="el-loading">正在確認是誰在玩…</p>',
+      '<form id="el-gate-form" hidden novalidate>',
+      '<p class="el-hint">小朋友輸入帳號就好，例如 ysc。媽媽輸入 smc，另一位家長請輸入完整的電子郵件。</p>',
+      '<label for="el-account">帳號</label>',
+      '<input id="el-account" name="username" type="text" autocomplete="username" autocapitalize="none"',
+      ' autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="ysc">',
       '<label for="el-pass">密碼</label>',
-      '<input id="el-pass" name="pass" type="password" inputmode="numeric" pattern="[0-9]*"',
-      ' autocomplete="off" enterkeyhint="go" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>',
-      '<button type="submit">進入</button>',
+      '<input id="el-pass" name="password" type="password" autocomplete="current-password" enterkeyhint="go">',
+      '<button type="button" class="el-secondary" id="el-show">顯示密碼</button>',
+      '<button type="submit" id="el-go">進入</button>',
       '<p id="el-gate-msg" class="el-msg" role="alert" aria-live="assertive"></p>',
-      '</div></form>'
+      '</form></div>'
     ].join('');
-    document.body.prepend(gate);
-    Array.prototype.forEach.call(document.body.children, function (el) {
-      if (el !== gate && 'inert' in el) el.inert = true;
-    });
+    document.body.appendChild(gate);
+    setInert(true);
     var form = document.getElementById('el-gate-form');
     form.addEventListener('submit', onSubmit);
-    var input = document.getElementById('el-pass');
-    input.addEventListener('input', function () {
-      var msg = document.getElementById('el-gate-msg');
-      if (msg && msg.textContent) msg.textContent = '';
+    document.getElementById('el-show').addEventListener('click', function () {
+      var input = document.getElementById('el-pass');
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      this.textContent = show ? '隱藏密碼' : '顯示密碼';
+      input.focus();
     });
-    input.focus();
+    document.getElementById('el-account').addEventListener('input', function () {
+      if (document.getElementById('el-gate-msg').textContent) showMessage('');
+    });
+    document.getElementById('el-pass').addEventListener('input', function () {
+      if (document.getElementById('el-gate-msg').textContent) showMessage('');
+    });
   }
 
-  if (document.body) mount();
-  else document.addEventListener('DOMContentLoaded', mount);
-})();
+  function publishAuth(profile) {
+    root.ELAuth = profile;
+    document.dispatchEvent(new CustomEvent('el-auth', { detail: profile }));
+  }
+
+  function waitForScoreApi(ms) {
+    return new Promise(function (resolve) {
+      var start = Date.now();
+      (function tick() {
+        if (root.UnitScore) return resolve(true);
+        if (Date.now() - start > ms) return resolve(false);
+        setTimeout(tick, 30);
+      })();
+    });
+  }
+
+  function writeProfile(user, profile) {
+    var ref = fs.doc(db, 'users', user.uid);
+    return fs.setDoc(ref, {
+      account: profile.account,
+      role: profile.role,
+      email: profile.email,
+      displayName: profile.displayName,
+      updatedAt: new Date().toISOString()
+    });
+  }
+
+  function writeScore(uid, chapter, unitId, state) {
+    var ref = fs.doc(db, 'users', uid, 'scores', root.UnitScore.docId(chapter, unitId));
+    var before = root.UnitScore.normalize(state);
+    return fs.runTransaction(db, function (tx) {
+      return tx.get(ref).then(function (snap) {
+        var cloud = snap.exists() ? snap.data() : null;
+        var merged = root.UnitScore.mergeState(state, cloud);
+        tx.set(ref, root.UnitScore.toCloud(chapter, unitId, merged));
+        return merged;
+      });
+    }).then(function (merged) {
+      root.UnitScore.noteCloud(chapter, unitId, merged);
+      if (JSON.stringify(root.UnitScore.normalize(before)) !== JSON.stringify(root.UnitScore.normalize(merged))) {
+        document.dispatchEvent(new CustomEvent('el-scores-updated'));
+      }
+    }).catch(function () {
+      return fs.getDoc(ref).then(function (snap) {
+        if (!snap.exists() || !root.UnitScore) return;
+        root.UnitScore.noteCloud(chapter, unitId, snap.data());
+        document.dispatchEvent(new CustomEvent('el-scores-updated'));
+      }).catch(function () {});
+    });
+  }
+
+  function hydrateScores(user) {
+    var finished = false;
+    function finish(updated) {
+      if (!root.UnitScore) return;
+      if (!finished) {
+        finished = true;
+        root.UnitScore.markReady();
+        return;
+      }
+      if (updated) document.dispatchEvent(new CustomEvent('el-scores-updated'));
+    }
+    var job = waitForScoreApi(8000).then(function (ok) {
+      if (!ok || !root.UnitScore) return;
+      root.UnitScore.bindUid(user.uid);
+      root.UnitScore.setCloudWriter(function (chapter, unitId, state) {
+        return writeScore(user.uid, chapter, unitId, state);
+      });
+      return fs.getDocs(fs.collection(db, 'users', user.uid, 'scores')).then(function (snap) {
+        snap.forEach(function (docSnap) {
+          var data = docSnap.data() || {};
+          var parts = docSnap.id.split('__');
+          var chapter = data.chapter || parts[0];
+          var unitId = data.unitId || parts.slice(1).join('__');
+          if (chapter && unitId) root.UnitScore.noteCloud(chapter, unitId, data);
+        });
+      });
+    }).then(function () {
+      finish(true);
+    }).catch(function () {
+      finish(false);
+    });
+    setTimeout(function () { finish(false); }, 12000);
+    return job;
+  }
+
+  var generation = 0;
+  function onUser(user) {
+    if (reloading) return;
+    var gen = ++generation;
+    authSettled = true;
+    if (!user) {
+      if (root.UnitScore) root.UnitScore.resetSession();
+      root.ELAuth = null;
+      showForm();
+      return;
+    }
+    showLoading('正在準備你的星星…');
+    var profile = profileFromUser(user);
+    var tasks = [writeProfile(user, profile).catch(function () {})];
+    if (pageUsesScores()) tasks.push(hydrateScores(user));
+    Promise.all(tasks).then(function () {
+      if (gen !== generation) return;
+      publishAuth(profile);
+      unlock();
+    });
+  }
+
+  async function onSubmit(event) {
+    event.preventDefault();
+    if (busy) return;
+    if (!auth || !authMod) {
+      showMessage('現在沒辦法連到登入服務，請檢查網路再重新整理。');
+      return;
+    }
+    var accountInput = document.getElementById('el-account');
+    var passInput = document.getElementById('el-pass');
+    var email = loginEmail(accountInput ? accountInput.value : '');
+    var password = passInput ? passInput.value : '';
+    if (!email) {
+      showMessage('請先輸入帳號喔。');
+      if (accountInput) accountInput.focus();
+      return;
+    }
+    if (!password) {
+      showMessage('請先輸入密碼喔。');
+      if (passInput) passInput.focus();
+      return;
+    }
+    busy = true;
+    reloading = true;
+    var button = document.getElementById('el-go');
+    if (button) button.disabled = true;
+    showMessage('');
+    try {
+      await authMod.signInWithEmailAndPassword(auth, email, password);
+      location.reload();
+    } catch (err) {
+      reloading = false;
+      showMessage(authErrorText(err && err.code));
+      if (passInput) {
+        passInput.value = '';
+        passInput.focus();
+      }
+    } finally {
+      busy = false;
+      if (button) button.disabled = false;
+    }
+  }
+
+  root.ELSignOut = function () {
+    reloading = true;
+    var done = auth && authMod ? authMod.signOut(auth) : Promise.resolve();
+    Promise.resolve(done).then(function () { location.reload(); }, function () { location.reload(); });
+  };
+
+  async function boot() {
+    if (booted) return;
+    booted = true;
+    try {
+      var mods = await Promise.all([
+        import(firebaseUrl('firebase-app')),
+        import(firebaseUrl('firebase-auth')),
+        import(firebaseUrl('firebase-firestore'))
+      ]);
+      var appMod = mods[0];
+      authMod = mods[1];
+      var fsMod = mods[2];
+      var app = appMod.initializeApp(firebaseConfig);
+      auth = authMod.getAuth(app);
+      await authMod.setPersistence(auth, authMod.browserLocalPersistence);
+      db = fsMod.getFirestore(app);
+      fs = fsMod;
+      root.ELFirebase = {
+        auth: auth,
+        db: db,
+        doc: fsMod.doc,
+        getDoc: fsMod.getDoc,
+        setDoc: fsMod.setDoc,
+        getDocs: fsMod.getDocs,
+        collection: fsMod.collection,
+        query: fsMod.query,
+        where: fsMod.where
+      };
+      authMod.onAuthStateChanged(auth, onUser);
+    } catch (err) {
+      authSettled = true;
+      showForm();
+      showMessage('現在沒辦法連到登入服務，請檢查網路再重新整理。');
+    }
+    setTimeout(function () {
+      if (!authSettled) showForm();
+    }, 8000);
+  }
+
+  injectStyle();
+  document.documentElement.classList.add('el-locked');
+  if (document.body) {
+    mount();
+    boot();
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      mount();
+      boot();
+    });
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

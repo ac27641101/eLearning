@@ -608,6 +608,16 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && rewardClos
 document.addEventListener('pointerdown', () => Sound.unlock(), {once: true});
 if (window.speechSynthesis) speechSynthesis.getVoices();
 renderLobby();
+function refreshAfterScores(){
+  if ($('play').classList.contains('active')) return;
+  const lesson = $('lesson');
+  if ($('unit').classList.contains('active') && curUnit) openUnit(curUnit);
+  else if (lesson && lesson.classList.contains('active') && typeof curLesson !== 'undefined' && curLesson) openLesson(curLesson);
+  else renderLobby();
+}
+document.addEventListener('el-scores-ready', refreshAfterScores);
+document.addEventListener('el-scores-updated', refreshAfterScores);
+if (window.ELScoresReady) refreshAfterScores();
 {
   const preview = S.rewardMeta(new URLSearchParams(location.search).get('preview'));
   if (preview) showRewardCard(preview, {celebrate: true, preview: true, unitName: '預覽'});
