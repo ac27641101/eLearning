@@ -14,12 +14,14 @@
 - 自然
   - [五上自然 CH3・神奇的水溶液](science-ch3/)
   - [五上自然 CH4・力與運動](science-ch4/)
+- 英文
+  - [五上英文 Unit 3–4 期末複習](english-u34/)
 
 新單元只要把資料夾放進這個專案，再在 `assets/hub.js` 的 `UNITS` 陣列加一筆（填好 `subject`）。新頁面請在 `<head>` 引入 `assets/gate.js`（路徑用相對路徑）。
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118a`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118b`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 
@@ -43,3 +45,5 @@ GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面
 - [自然 CH3・60 分鐘](https://ac27641101.github.io/eLearning/science-ch3/?preview=reward2)
 - [自然 CH4・30 分鐘](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward1)
 - [自然 CH4・60 分鐘](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward2)
+- [英文 Unit 3–4・30 分鐘](https://ac27641101.github.io/eLearning/english-u34/?preview=reward1)
+- [英文 Unit 3–4・60 分鐘](https://ac27641101.github.io/eLearning/english-u34/?preview=reward2)

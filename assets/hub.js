@@ -40,6 +40,13 @@
       icon: '🍎',
       title: '五上自然 CH4\n力與運動',
       desc: '第四單元：地球引力、測量力和摩擦力'
+    },
+    {
+      subject: 'english',
+      href: 'english-u34/',
+      icon: '📘',
+      title: '五上英文\nUnit 3–4 期末複習',
+      desc: '休閒活動、作息時間、弱點加強、模擬考'
     }
   ];
 
