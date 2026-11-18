@@ -226,7 +226,7 @@
       '<form id="el-gate-form" hidden novalidate>',
       '<label for="el-account">帳號</label>',
       '<input id="el-account" name="username" type="text" autocomplete="username" autocapitalize="none"',
-      ' autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="ysc">',
+      ' autocorrect="off" spellcheck="false" enterkeyhint="next">',
       '<label for="el-pass">密碼</label>',
       '<input id="el-pass" name="password" type="password" autocomplete="current-password" enterkeyhint="go">',
       '<button type="button" class="el-secondary" id="el-show">顯示密碼</button>',

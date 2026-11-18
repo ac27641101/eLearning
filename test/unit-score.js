@@ -444,6 +444,7 @@ function testLoginAccountAndRules() {
   assert.ok(gate.includes("html.el-locked body{visibility:hidden !important}"));
   assert.ok(!gate.includes('小朋友輸入帳號就好'));
   assert.ok(!gate.includes('class="el-hint"'));
+  assert.ok(!gate.includes('placeholder='));
   const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
   assert.ok(rules.includes("request.auth.token.email in ['ac27641101@gmail.com','smc@kids.local']"));
   assert.ok(!rules.includes('test@kids.local'));
