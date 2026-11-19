@@ -159,6 +159,8 @@
     boundUid = null;
     shadow = {};
     writer = null;
+    reviewShadow = {};
+    reviewWriter = null;
     ready = false;
     waiters.length = 0;
     try { root.ELScoresReady = false; } catch (e) {}
@@ -279,7 +281,34 @@
   }
 
   function createTally() {
-    return { right: 0, miss: 0, missed: {} };
+    return { right: 0, miss: 0, missed: {}, wrongs: {} };
+  }
+
+  function clipText(value, max) {
+    const text = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+    const limit = max || 200;
+    return text.length > limit ? text.slice(0, limit) : text;
+  }
+
+  function rememberWrong(tally, detail) {
+    if (!tally || !detail) return;
+    if (!tally.wrongs) tally.wrongs = {};
+    tally.wrongs[detail.id || ('w' + Object.keys(tally.wrongs).length)] = {
+      q: clipText(detail.q, 200),
+      a: clipText(detail.a, 200),
+      c: clipText(detail.c, 200)
+    };
+  }
+
+  function wrongList(tally) {
+    const bag = (tally && tally.wrongs) || {};
+    const missed = (tally && tally.missed) || {};
+    const list = [];
+    Object.keys(bag).forEach(id => {
+      if (missed[id] !== true) return;
+      list.push(bag[id]);
+    });
+    return list.slice(0, 40);
   }
 
   function noteWrong(tally, itemId) {
@@ -483,11 +512,200 @@
     return (level && level.how) || '';
   }
 
-  function levelMark(state, levelId) {
-    if (isPractice(state)) return '練習';
-    const stars = runLevelStars(state, levelId);
-    if (stars === null) return '這次還沒玩';
-    return '這次 ★ ' + stars;
+  function levelMark(state, levelId, levelReview) {
+    const practice = isPractice(state);
+    const hasRun = !!(state && state.run && state.run.levels);
+    const inRun = hasRun && Object.prototype.hasOwnProperty.call(state.run.levels, levelId);
+    const last = lastRunText(levelReview);
+    if (practice) return last ? '練習・' + last : '練習';
+    if (hasRun) {
+      if (inRun) return '這次 ★ ' + state.run.levels[levelId];
+      return '這次還沒玩';
+    }
+    if (last) return last;
+    return '還沒有每關紀錄';
+  }
+
+  function lastRunText(levelReview) {
+    if (!levelReview || typeof levelReview.stars !== 'number' || !isFinite(levelReview.stars)) return '';
+    const stars = Math.max(0, Math.round(levelReview.stars));
+    if (typeof levelReview.max === 'number' && isFinite(levelReview.max)) {
+      return '上次 ★ ' + stars + ' / ' + Math.max(0, Math.round(levelReview.max));
+    }
+    return '上次 ★ ' + stars;
+  }
+
+  let reviewShadow = {};
+  let reviewWriter = null;
+
+  function reviewStorageKey(chapter, unitId, uid) {
+    const id = chapter + ':' + unitId;
+    return uid ? 'el-review-v1:' + uid + ':' + id : 'el-review-v1:' + id;
+  }
+
+  function reviewKeyFor(chapter, unitId, storage) {
+    if (storage) return reviewStorageKey(chapter, unitId);
+    return reviewStorageKey(chapter, unitId, boundUid);
+  }
+
+  function emptyReview() {
+    return { levels: {} };
+  }
+
+  function normalizeReviewLevel(raw) {
+    const wrong = [];
+    if (raw && Array.isArray(raw.wrong)) {
+      raw.wrong.slice(0, 40).forEach(item => {
+        if (!item || typeof item !== 'object') return;
+        wrong.push({
+          q: clipText(item.q, 200),
+          a: clipText(item.a, 200),
+          c: clipText(item.c, 200)
+        });
+      });
+    }
+    const stars = raw && typeof raw.stars === 'number' && isFinite(raw.stars) ? Math.max(0, Math.min(30, Math.round(raw.stars))) : 0;
+    const max = raw && typeof raw.max === 'number' && isFinite(raw.max) ? Math.max(0, Math.min(30, Math.round(raw.max))) : 0;
+    return {
+      stars: stars,
+      max: max,
+      wrong: wrong,
+      at: raw && typeof raw.at === 'string' ? raw.at.slice(0, 40) : ''
+    };
+  }
+
+  function normalizeReview(raw) {
+    const out = emptyReview();
+    const levels = raw && raw.levels && typeof raw.levels === 'object' ? raw.levels : null;
+    if (!levels) return out;
+    Object.keys(levels).slice(0, 8).forEach(id => {
+      out.levels[id] = normalizeReviewLevel(levels[id]);
+    });
+    return out;
+  }
+
+  function readReviewKey(box, key) {
+    try {
+      const raw = box.getItem(key);
+      return normalizeReview(raw ? JSON.parse(raw) : null);
+    } catch (e) {
+      return emptyReview();
+    }
+  }
+
+  function writeReviewKey(box, key, review) {
+    box.setItem(key, JSON.stringify(normalizeReview(review)));
+  }
+
+  function loadReview(chapter, unitId, storage) {
+    const box = resolveBox(storage);
+    const key = reviewKeyFor(chapter, unitId, storage);
+    const local = readReviewKey(box, key);
+    if (storage) return local;
+    const id = docId(chapter, unitId);
+    if (!Object.prototype.hasOwnProperty.call(reviewShadow, id)) return local;
+    return normalizeReview(reviewShadow[id]);
+  }
+
+  function setReviewWriter(fn) {
+    reviewWriter = typeof fn === 'function' ? fn : null;
+  }
+
+  function queueReview(chapter, unitId, review) {
+    if (typeof reviewWriter !== 'function') return;
+    try {
+      const result = reviewWriter(chapter, unitId, review);
+      if (result && typeof result.then === 'function') result.then(function () {}, function () {});
+    } catch (e) { /* 錯題寫入失敗不能擋住計分 */ }
+  }
+
+  function saveReviewLevel(chapter, unitId, levelId, record, storage) {
+    try {
+      const box = resolveBox(storage);
+      const key = reviewKeyFor(chapter, unitId, storage);
+      const next = loadReview(chapter, unitId, storage);
+      next.levels[levelId] = normalizeReviewLevel(record);
+      const ids = Object.keys(next.levels);
+      if (ids.length > 8) {
+        ids.sort((a, b) => String(next.levels[a].at).localeCompare(String(next.levels[b].at)));
+        ids.forEach(id => {
+          if (id !== levelId && Object.keys(next.levels).length > 8) delete next.levels[id];
+        });
+      }
+      const saved = normalizeReview(next);
+      if (!storage) reviewShadow[docId(chapter, unitId)] = saved;
+      writeReviewKey(box, key, saved);
+      if (!storage) queueReview(chapter, unitId, saved);
+    } catch (e) { /* 錯題寫入失敗不能擋住計分 */ }
+  }
+
+  function noteReview(chapter, unitId, raw, storage) {
+    const saved = normalizeReview(raw);
+    if (!storage) reviewShadow[docId(chapter, unitId)] = saved;
+    writeReviewKey(resolveBox(storage), reviewKeyFor(chapter, unitId, storage), saved);
+    return saved;
+  }
+
+  function replaceReviews(entries) {
+    const prefix = 'el-review-v1:' + (boundUid ? boundUid + ':' : '');
+    const keep = {};
+    reviewShadow = {};
+    (entries || []).forEach(entry => {
+      if (!entry || !entry.chapter || !entry.unitId) return;
+      const saved = noteReview(entry.chapter, entry.unitId, entry.data);
+      keep[reviewStorageKey(entry.chapter, entry.unitId, boundUid)] = saved;
+    });
+    try {
+      const box = resolveBox();
+      if (typeof box.key !== 'function' || typeof box.length !== 'number') return;
+      const doomed = [];
+      for (let i = 0; i < box.length; i++) {
+        const key = box.key(i);
+        if (key && key.indexOf(prefix) === 0 && !Object.prototype.hasOwnProperty.call(keep, key)) doomed.push(key);
+      }
+      doomed.forEach(key => box.removeItem(key));
+    } catch (e) {}
+  }
+
+  function clearReview(chapter, unitId, storage) {
+    try {
+      const box = resolveBox(storage);
+      box.removeItem(reviewKeyFor(chapter, unitId, storage));
+      if (!storage) delete reviewShadow[docId(chapter, unitId)];
+    } catch (e) {}
+  }
+
+  function toReviewCloud(chapter, unitId, review) {
+    const saved = normalizeReview(review);
+    return {
+      chapter: String(chapter),
+      unitId: String(unitId),
+      levels: saved.levels,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  function mergeReview(cloud, incoming) {
+    const base = normalizeReview(cloud);
+    const extra = normalizeReview(incoming);
+    Object.keys(extra.levels).forEach(id => { base.levels[id] = extra.levels[id]; });
+    const ids = Object.keys(base.levels);
+    if (ids.length > 8) {
+      ids.sort((a, b) => String(base.levels[a].at).localeCompare(String(base.levels[b].at)));
+      while (Object.keys(base.levels).length > 8) delete base.levels[ids.shift()];
+    }
+    return normalizeReview(base);
+  }
+
+  function reviewBodyHtml(levelReview) {
+    const wrong = (levelReview && levelReview.wrong) || [];
+    let html = '<p class="wrong-head"><b>' + (wrong.length ? ('上次這關錯了 ' + wrong.length + ' 題') : '上次全對！') + '</b></p>';
+    wrong.forEach(item => {
+      html += '<div class="wrong-item"><p>題目：' + escapeHtml(item.q) + '</p>'
+        + '<p class="ans-bad">你的答案：' + escapeHtml(item.a || '（空白）') + '</p>'
+        + '<p class="ans-good">正確答案：' + escapeHtml(item.c) + '</p></div>';
+    });
+    return html;
   }
 
   const REWARD_META = [
@@ -540,6 +758,8 @@
     earned: earned,
     createTally: createTally,
     noteWrong: noteWrong,
+    rememberWrong: rememberWrong,
+    wrongList: wrongList,
     noteRight: noteRight,
     countItems: countItems,
     unitItemCount: unitItemCount,
@@ -572,6 +792,15 @@
     formatDate: formatDate,
     howLine: howLine,
     levelMark: levelMark,
+    loadReview: loadReview,
+    saveReviewLevel: saveReviewLevel,
+    noteReview: noteReview,
+    replaceReviews: replaceReviews,
+    clearReview: clearReview,
+    setReviewWriter: setReviewWriter,
+    toReviewCloud: toReviewCloud,
+    mergeReview: mergeReview,
+    reviewBodyHtml: reviewBodyHtml,
     REWARD_META: REWARD_META,
     rewardMeta: rewardMeta,
     escapeHtml: escapeHtml,

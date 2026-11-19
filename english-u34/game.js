@@ -421,11 +421,23 @@ function openUnit(u){
   $('unitDesc').innerHTML = u.desc;
   $('rulesStrip').innerHTML = S.RULES_HTML;
   renderRewards(u);
-  $('levels').innerHTML = u.levels.map((l, i) => `<button class="lv-card px" data-l="${i}">
+  const review = S.loadReview(CHAPTER, u.id);
+  $('levels').innerHTML = u.levels.map((l, i) => {
+    const lvRev = review.levels[l.id];
+    const see = lvRev ? '<button type="button" class="px-btn lv-review" data-review="' + i + '">看錯題</button>' : '';
+    return `<div class="lv-card px" data-l="${i}">
       <span class="lv-ico">${l.icon}</span><span class="chip ${KIND[l.kind][1]}">${KIND[l.kind][0]}</span>
       <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
-      <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
+      <span class="lv-st">${S.levelMark(st, l.id, lvRev)}</span>${see}</div>`;
+  }).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
+  $('levels').querySelectorAll('.lv-review').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    Sound.click();
+    const level = u.levels[+b.dataset.review];
+    const lvRev = S.loadReview(CHAPTER, u.id).levels[level.id];
+    showModal({icon: '📝', title: level.name, html: S.reviewBodyHtml(lvRev), buttons: [{label: '關閉', value: true, cls: 'stone'}]});
+  }));
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
 }
@@ -455,8 +467,9 @@ function startLevel(level){
 }
 function setAsk(html){ $('lvAsk').innerHTML = html; }
 function setProg(i, n){ $('lvProg').textContent = `${i} / ${n}`; }
-function missItem(id, tip){
+function missItem(id, tip, detail){
   S.noteWrong(game.tally, id);
+  if (detail) S.rememberWrong(game.tally, Object.assign({ id: id }, detail));
   Sound.bad();
   const msg = tip || '這次沒答對，這顆星拿不到。';
   toast('🤔 ' + msg, 4200);
@@ -491,6 +504,11 @@ async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
   const stars = game.tally.right;
+  try {
+    S.saveReviewLevel(CHAPTER, curUnit.id, curLevel.id, {
+      stars: stars, max: game.items, wrong: S.wrongList(game.tally), at: S.todayISO()
+    });
+  } catch (err) {}
   const before = loadScore(curUnit);
   const result = S.commitLevel(before, {
     levelId: curLevel.id,
@@ -686,7 +704,9 @@ const RENDER = {
         if (it.tip) toast('✅ ' + it.tip, 2600);
         if (done === items.length) later(finishLevel, 600);
       } else {
-        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。');
+        const wrongBin = (lv.bins.find(b => b.id === bin.dataset.b) || {}).name || '';
+        const rightBin = (lv.bins.find(b => b.id === it.bin) || {}).name || '';
+        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。', { q: it.t, a: wrongBin, c: rightBin });
       }
     };
     items.forEach((it, i) => {
@@ -741,7 +761,7 @@ const RENDER = {
             $('nextR').addEventListener('click', () => { Sound.click(); ri++; round(); });
           }
         } else {
-          restartAnim(card, 'shake'); missItem(key, r.items[i].hint || `「${r.items[i].t}」還不是下一個，這顆星拿不到。`);
+          restartAnim(card, 'shake'); missItem(key, r.items[i].hint || `「${r.items[i].t}」還不是下一個，這顆星拿不到。`, { q: ((r.ask || '') + ' ' + r.items[i].t).trim(), a: r.items[i].t, c: (r.items[next] || {}).t || '' });
         }
       };
       S.shuffle(r.items.map((it, i) => ({...it, i}))).forEach(it => {
@@ -767,7 +787,7 @@ function renderChoiceQ(q, next, index, total){
     const picked = +b.dataset.i;
     const o = opts[picked];
     if (o.right){ goodItem(q.id); bigCheck(); }
-    else missItem(q.id, '這題沒答對，這顆星拿不到。');
+    else missItem(q.id, '這題沒答對，這顆星拿不到。', { q: stripTags(q.q), a: stripTags(o.t) || '（圖）', c: stripTags((opts.find(x => x.right) || {}).t) || '（圖）' });
     $('stage').querySelectorAll('.opt').forEach(x => {
       x.disabled = true;
       const choice = opts[+x.dataset.i];
@@ -790,7 +810,7 @@ function renderSpellQ(q, next, index, total){
     const got = box.value();
     const ok = got === q.answer;
     if (ok){ goodItem(q.id); bigCheck(); }
-    else missItem(q.id, '拼得不一樣，這顆星拿不到。');
+    else missItem(q.id, '拼得不一樣，這顆星拿不到。', { q: stripTags(q.q), a: got || '（空白）', c: q.answer });
     $('why').innerHTML = (ok ? quizWhy(q) : `<div class="explain" style="margin-top:10px">💡 ${spellDiff(q.answer, got)}<br>${S.escapeHtml(q.why || '')}</div>`) + nextBtn(index, total);
     $('checkBtn').disabled = true;
     $('nextQ').addEventListener('click', () => { Sound.click(); next(); });
@@ -807,9 +827,9 @@ function renderSentenceQ(q, next, index, total){
     box.lock();
     const got = box.value();
     const ok = sentenceOk(got, q.accept);
-    if (ok){ goodItem(q.id); bigCheck(); }
-    else missItem(q.id, '句子還不對，這顆星拿不到。');
     const yours = got.length ? showSentence(got) : '（空白）';
+    if (ok){ goodItem(q.id); bigCheck(); }
+    else missItem(q.id, '句子還不對，這顆星拿不到。', { q: stripTags(q.q), a: yours, c: showSentence(q.tokens) });
     $('why').innerHTML = `<div class="explain" style="margin-top:10px">💡 ${S.escapeHtml(q.why || '')}<br>你排成：${S.escapeHtml(yours)}<br>可以寫成：${S.escapeHtml(showSentence(q.tokens))}</div>` + nextBtn(index, total);
     $('checkBtn').disabled = true;
     $('nextQ').addEventListener('click', () => { Sound.click(); next(); });
@@ -1044,9 +1064,13 @@ function gradePaper(lv, qs, single, groups){
       answer = w.answer();
       w.lock();
     }
+    const promptText = q.prompt || q.stem || q.q || '';
     if (ok) S.noteRight(game.tally, q.id);
-    else S.noteWrong(game.tally, q.id);
-    return { id: q.id, part: q.part, points: q.points, ok: ok, prompt: q.prompt || q.stem || q.q, yours: yours, answer: answer, why: q.why || '' };
+    else {
+      S.noteWrong(game.tally, q.id);
+      S.rememberWrong(game.tally, { id: q.id, q: promptText, a: yours, c: answer });
+    }
+    return { id: q.id, part: q.part, points: q.points, ok: ok, prompt: promptText, yours: yours, answer: answer, why: q.why || '' };
   });
   if (items.some(it => !it.ok)) Sound.bad(); else Sound.ding();
   const saved = paperBag();

@@ -35,6 +35,8 @@
 
 英文模擬考要四個部分都交卷，而且還在計分機會裡，才會把最好的考卷分數（0–100）寫進「模擬考」這個小單元。家長頁看得到。練習模式不會改這個分數。考卷做到一半的答案仍留在這台裝置。
 
+每一關最近一次玩的星星和錯題寫在另一份紀錄 `users/{uid}/reviews/{chapter__unitId}`。星星檔 `scores` 的格式不變。看錯題失敗也不會擋住計分。家長重置小單元時，這份錯題紀錄會一起清掉。孩子自己按「清除星星紀錄」會留下錯題。
+
 ## 家長頁
 
 家長登入後，從學習島進 [家長頁](parent/)。每個孩子會列出社會、自然、英文的每個小單元：最好星星 / 30、已用次數 / 3、Switch 分鐘（0、30 或 60），以及這個孩子總共得到的 Switch 分鐘。英文模擬考如果有考卷分數，會顯示最好成績 / 100。
@@ -60,7 +62,7 @@ Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261118e`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261119a`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 

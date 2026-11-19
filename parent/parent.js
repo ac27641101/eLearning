@@ -153,6 +153,28 @@
     return found || unitId;
   }
 
+  function reviewOf(child, chapter, unitId) {
+    if (!child.reviews) return null;
+    return child.reviews[chapter + '__' + unitId] || null;
+  }
+
+  function reviewBlock(review) {
+    var levels = review && review.levels;
+    if (!levels || !Object.keys(levels).length) return '';
+    var html = '<details class="wrong-fold"><summary>看錯題</summary>';
+    Object.keys(levels).forEach(function (id) {
+      var level = levels[id] || {};
+      var wrong = level.wrong || [];
+      html += '<div class="wrong-level"><p><b>' + esc(id) + '</b>　上次 ★ ' + (level.stars || 0) + ' / ' + (level.max || 0) + '</p>';
+      if (!wrong.length) html += '<p>上次全對！</p>';
+      wrong.forEach(function (item) {
+        html += '<p class="wrong-item">題目：' + esc(item.q) + '<br><span class="ans-bad">你的答案：' + esc(item.a || '（空白）') + '</span><br><span class="ans-good">正確答案：' + esc(item.c) + '</span></p>';
+      });
+      html += '</div>';
+    });
+    return html + '</details>';
+  }
+
   function rowHtml(child, chapter, unit, state) {
     var sum = state ? UnitScore.summarize(state) : {
       best: 0, attemptsUsed: 0, switchMinutes: 0, examBest: null
@@ -170,7 +192,7 @@
       '<span class="stat' + (quiet ? ' zero' : '') + '">★ ' + sum.best + ' / 30</span>' +
       '<span class="stat' + (quiet ? ' zero' : '') + '">次數 ' + sum.attemptsUsed + ' / 3</span>' +
       '<span class="stat' + (quiet ? ' zero' : '') + '">Switch ' + sum.switchMinutes + ' 分鐘</span>' +
-      '<div class="row-end">' + end + '</div></div>';
+      '<div class="row-end">' + end + '</div></div>' + reviewBlock(reviewOf(child, chapter, unit.id));
   }
 
   function chapterHtml(child, block) {
@@ -257,9 +279,12 @@
           rev: rev,
           updatedAt: new Date().toISOString()
         }).then(function () {
+          return fb.deleteDoc(fb.doc(fb.db, 'users', uid, 'reviews', chapter + '__' + unitId)).catch(function () {});
+        }).then(function () {
           child.scores[chapter + '__' + unitId] = {
             chapter: chapter, unitId: unitId, scores: [], rewards: {}, run: null, rev: rev
           };
+          if (child.reviews) delete child.reviews[chapter + '__' + unitId];
           render(viewing);
         }).catch(function () {
           button.disabled = false;
@@ -300,6 +325,19 @@
           'science-ch3__u1': pack('science-ch3', 'u1', [30], { rewards: { reward1: '2026-11-03', reward2: '2026-11-03' } }),
           'science-ch4__u2': pack('science-ch4', 'u2', [0, 0, 0]),
           'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86 })
+        },
+        reviews: {
+          'social-ch3__sugar': {
+            chapter: 'social-ch3',
+            unitId: 'sugar',
+            levels: {
+              'sugar-hand': {
+                stars: 6, max: 8,
+                wrong: [{ q: '虎尾鎮有「糖都」之稱', a: '出口', c: '糖都虎尾' }],
+                at: '2026-11-18'
+              }
+            }
+          }
         }
       },
       {
@@ -414,7 +452,8 @@
           uid: docSnap.id,
           account: data.account || '',
           email: data.email || '',
-          scores: {}
+          scores: {},
+          reviews: {}
         });
       });
       return Promise.all(profiles.map(function (profile) {
@@ -426,7 +465,16 @@
             var unitId = data.unitId || parts.slice(1).join('__');
             profile.scores[chapter + '__' + unitId] = data;
           });
-          return profile;
+          return fb.getDocs(fb.collection(fb.db, 'users', profile.uid, 'reviews')).then(function (reviews) {
+            reviews.forEach(function (reviewSnap) {
+              var data = reviewSnap.data() || {};
+              var parts = reviewSnap.id.split('__');
+              var chapter = data.chapter || parts[0];
+              var unitId = data.unitId || parts.slice(1).join('__');
+              profile.reviews[chapter + '__' + unitId] = data;
+            });
+            return profile;
+          }).catch(function () { return profile; });
         });
       }));
     }).then(function (profiles) {

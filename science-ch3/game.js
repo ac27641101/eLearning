@@ -258,11 +258,23 @@ function openUnit(u){
   $('unitDesc').innerHTML = u.desc;
   $('rulesStrip').innerHTML = S.RULES_HTML;
   renderRewards(u);
-  $('levels').innerHTML = u.levels.map((l, i) => `<button class="lv-card px" data-l="${i}">
+  const review = S.loadReview(CHAPTER, u.id);
+  $('levels').innerHTML = u.levels.map((l, i) => {
+    const lvRev = review.levels[l.id];
+    const see = lvRev ? '<button type="button" class="px-btn lv-review" data-review="' + i + '">看錯題</button>' : '';
+    return `<div class="lv-card px" data-l="${i}">
       <span class="lv-ico">${l.icon}</span><span class="chip ${KIND[l.kind][1]}">${KIND[l.kind][0]}</span>
       <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
-      <span class="lv-st">${S.levelMark(st, l.id)}</span></button>`).join('');
+      <span class="lv-st">${S.levelMark(st, l.id, lvRev)}</span>${see}</div>`;
+  }).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
+  $('levels').querySelectorAll('.lv-review').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    Sound.click();
+    const level = u.levels[+b.dataset.review];
+    const lvRev = S.loadReview(CHAPTER, u.id).levels[level.id];
+    showModal({icon: '📝', title: level.name, html: S.reviewBodyHtml(lvRev), buttons: [{label: '關閉', value: true, cls: 'stone'}]});
+  }));
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
 }
@@ -291,8 +303,9 @@ function startLevel(level){
 }
 function setAsk(html){ $('lvAsk').innerHTML = html; }
 function setProg(i, n){ $('lvProg').textContent = `${i} / ${n}`; }
-function missItem(id, tip){
+function missItem(id, tip, detail){
   S.noteWrong(game.tally, id);
+  if (detail) S.rememberWrong(game.tally, Object.assign({ id: id }, detail));
   Sound.bad();
   const msg = tip || '這次沒答對，這顆星拿不到。';
   toast('🤔 ' + msg, 4200);
@@ -327,6 +340,11 @@ async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
   const stars = game.tally.right;
+  try {
+    S.saveReviewLevel(CHAPTER, curUnit.id, curLevel.id, {
+      stars: stars, max: game.items, wrong: S.wrongList(game.tally), at: S.todayISO()
+    });
+  } catch (err) {}
   const before = loadScore(curUnit);
   const result = S.commitLevel(before, {
     levelId: curLevel.id,
@@ -423,7 +441,9 @@ const RENDER = {
         if (it.tip) toast('✅ ' + it.tip, 2600);
         if (done === items.length) later(finishLevel, 600);
       } else {
-        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。');
+        const wrongBin = (lv.bins.find(b => b.id === bin.dataset.b) || {}).name || '';
+        const rightBin = (lv.bins.find(b => b.id === it.bin) || {}).name || '';
+        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。', { q: it.t, a: wrongBin, c: rightBin });
       }
     };
     items.forEach((it, i) => {
@@ -458,7 +478,7 @@ const RENDER = {
         const o = opts[picked];
         const key = 'q' + qi;
         if (o.right){ goodItem(key); bigCheck(); }
-        else missItem(key, q.hint || '這題沒答對，這顆星拿不到。');
+        else missItem(key, q.hint || '這題沒答對，這顆星拿不到。', { q: q.q, a: o.t, c: (q.opts || [])[0] || '' });
         $('stage').querySelectorAll('.opt').forEach(x => {
           x.disabled = true;
           const choice = opts[+x.dataset.i];
@@ -498,7 +518,7 @@ const RENDER = {
             $('nextR').addEventListener('click', () => { Sound.click(); ri++; round(); });
           }
         } else {
-          restartAnim(card, 'shake'); missItem(key, r.items[i].hint || `「${r.items[i].t}」還不是下一個，這顆星拿不到。`);
+          restartAnim(card, 'shake'); missItem(key, r.items[i].hint || `「${r.items[i].t}」還不是下一個，這顆星拿不到。`, { q: ((r.ask || '') + ' ' + r.items[i].t).trim(), a: r.items[i].t, c: (r.items[next] || {}).t || '' });
         }
       };
       S.shuffle(r.items.map((it, i) => ({...it, i}))).forEach(it => {
