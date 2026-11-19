@@ -116,7 +116,9 @@ function showModal({icon = '', title = '', html = '', center = false, buttons = 
 let curUnit = null, curLevel = null, timerId = null, game = null;
 function show(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
-  $('homeBtn').hidden = id === 'lobby';
+  const home = $('homeBtn');
+  home.hidden = id === 'lobby';
+  if (!home.hidden) home.textContent = id === 'play' ? '⬅ 回小單元' : '⬅ 回單元';
   stopTimer(); clearLater(); $('overlay').classList.remove('open');
   if (window.speechSynthesis) speechSynthesis.cancel();
   window.scrollTo(0, 0);
@@ -248,6 +250,7 @@ function renderLobby(){
   $('portals').querySelectorAll('.portal').forEach(p => p.addEventListener('click', () => { Sound.click(); Sound.unlock(); openUnit(UNITS[+p.dataset.u]); }));
   $('topTitle').textContent = '🧭 五年級社會・看見福爾摩沙';
   show('lobby');
+  placeScreen({});
 }
 
 function openUnit(u){
@@ -273,10 +276,13 @@ function openUnit(u){
     Sound.click();
     const level = u.levels[+b.dataset.review];
     const lvRev = S.loadReview(CHAPTER, u.id).levels[level.id];
-    showModal({icon: '📝', title: level.name, html: S.reviewBodyHtml(lvRev), buttons: [{label: '關閉', value: true, cls: 'stone'}]});
+    const stNow = loadScore(curUnit);
+    const current = !!(stNow && stNow.run && stNow.run.levels && Object.prototype.hasOwnProperty.call(stNow.run.levels, level.id));
+    showModal({icon: '📝', title: level.name, html: S.reviewBodyHtml(lvRev, { current: current }), buttons: [{label: '關閉', value: true, cls: 'stone'}]});
   }));
   $('topTitle').textContent = `${u.icon} ${u.name}`;
   show('unit');
+  placeScreen({ lesson: (typeof curLesson !== 'undefined' && curLesson) ? curLesson.id : '', unit: curUnit && curUnit.id });
 }
 
 function startLevel(level){
@@ -285,7 +291,8 @@ function startLevel(level){
   const practice = S.isPractice(st);
   const replay = !practice && S.runLevelStars(st, level.id) !== null;
   show('play');
-  game = { level, tally: S.createTally(), over: false, practice, replay, items: S.countItems(level) };
+  placeScreen({ lesson: (typeof curLesson !== 'undefined' && curLesson) ? curLesson.id : '', unit: curUnit && curUnit.id, play: true });
+  game = { level, tally: S.createTally(), over: false, practice, replay, items: S.countItems(level), startedAt: Date.now() };
   $('lvTitle').textContent = `${level.icon} ${level.name}`;
   $('lvKind').textContent = KIND[level.kind][0]; $('lvKind').className = 'chip ' + KIND[level.kind][1];
   $('lvProg').textContent = '';
@@ -302,7 +309,7 @@ function startLevel(level){
   RENDER[level.type](level);
 }
 function setAsk(html){ $('lvAsk').innerHTML = html; }
-function setProg(i, n){ $('lvProg').textContent = `${i} / ${n}`; }
+function setProg(i, n, kind){ $('lvProg').textContent = kind === 'cards' ? `已放 ${i} / ${n} 張` : `${i} / ${n}`; }
 function missItem(id, tip, detail){
   S.noteWrong(game.tally, id);
   if (detail) S.rememberWrong(game.tally, Object.assign({ id: id }, detail));
@@ -361,7 +368,9 @@ async function finishLevel(){
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
   btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
-  let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>`;
+  const used = (curLevel && curLevel.time && game.startedAt) ? Math.max(1, Math.min(curLevel.time, Math.round((Date.now() - game.startedAt) / 1000))) : 0;
+  const timeLine = used ? `<div class="m-time">這關用了 ${used} 秒</div>` : '';
+  let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>${timeLine}`;
   if (game.practice || result.practice) html += '練習模式，這次不會算星星。';
   else if (game.replay || result.replay) html += '這一關這次已經算過了，分數沒有改變。';
   else if (result.completed){
@@ -428,7 +437,7 @@ const RENDER = {
     let done = 0, selected = null;
     $('stage').innerHTML = `<div class="panel px"><div class="tray" id="tray"></div></div><div class="bins" id="bins"></div>`;
     $('bins').innerHTML = lv.bins.map(b => `<div class="bin px tapme" data-b="${b.id}"><h3>${b.icon} ${b.name}</h3><div class="bin-items"></div></div>`).join('');
-    setProg(0, items.length);
+    setProg(0, items.length, 'cards');
     const tray = $('tray');
     const drop = (card, bin) => {
       if (card.classList.contains('ok') || game.over) return;
@@ -437,18 +446,18 @@ const RENDER = {
       if (selected){ selected.classList.remove('sel'); selected = null; }
       if (it.bin === bin.dataset.b){
         goodItem(key); card.classList.add('ok'); bin.querySelector('.bin-items').appendChild(card);
-        restartAnim(bin, 'flash-ok'); done++; setProg(done, items.length);
+        restartAnim(bin, 'flash-ok'); done++; setProg(done, items.length, 'cards');
         if (it.tip) toast('✅ ' + it.tip, 2600);
         if (done === items.length) later(finishLevel, 600);
       } else {
         const wrongBin = (lv.bins.find(b => b.id === bin.dataset.b) || {}).name || '';
         const rightBin = (lv.bins.find(b => b.id === it.bin) || {}).name || '';
-        restartAnim(card, 'shake'); missItem(key, it.hint || '放錯了，這顆星拿不到。再放到對的箱子才能過關。', { q: it.t, a: wrongBin, c: rightBin });
+        restartAnim(card, 'shake'); missItem(key, '放錯了，這張應該放「' + rightBin + '」。', { q: it.t, a: wrongBin, c: rightBin });
       }
     };
     items.forEach((it, i) => {
       const c = document.createElement('div'); c.className = 'chipcard'; c.dataset.i = i;
-      c.innerHTML = `<span class="em">${it.em}</span>${it.t}`;
+      c.innerHTML = `<span class="em">${S.showGlyph(it.em)}</span>${it.t}`;
       makeDraggable(c, {
         findTarget: el => el && el.closest('.bin'),
         onDrop: drop,
@@ -468,7 +477,7 @@ const RENDER = {
       const q = qs[qi]; setProg(qi + 1, qs.length); setAsk(q.q);
       const opts = S.choiceDeck(q.opts);
       let locked = false;
-      $('stage').innerHTML = `<div class="panel px">${q.art ? `<div class="q-art">${q.art}</div>` : ''}
+      $('stage').innerHTML = `<div class="panel px">${q.art ? `<div class="q-art">${S.showGlyph(q.art)}</div>` : ''}
         <div class="opts">${opts.map((o, i) => `<button class="px-btn opt" data-i="${i}">${'ABCD'[i]}. ${o.t}</button>`).join('')}</div>
         <div id="why"></div></div>`;
       $('stage').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
@@ -510,7 +519,7 @@ const RENDER = {
         const key = 'r' + ri + '-' + i;
         if (i === next){
           goodItem(key); const slot = $('slots').children[next * 2];
-          slot.classList.add('filled'); slot.innerHTML = `<span class="em">${r.items[i].em}</span>${r.items[i].t}`;
+          slot.classList.add('filled'); slot.innerHTML = `<span class="em">${S.showGlyph(r.items[i].em)}</span>${r.items[i].t}`;
           card.remove(); next++; setProg(next, r.items.length);
           if (next === r.items.length){
             $('why').innerHTML = `<div class="explain">💡 ${r.why || '順序完全正確！'}</div>
@@ -523,7 +532,7 @@ const RENDER = {
       };
       S.shuffle(r.items.map((it, i) => ({...it, i}))).forEach(it => {
         const c = document.createElement('div'); c.className = 'chipcard'; c.dataset.i = it.i;
-        c.innerHTML = `<span class="em">${it.em}</span>${it.t}`;
+        c.innerHTML = `<span class="em">${S.showGlyph(it.em)}</span>${it.t}`;
         makeDraggable(c, {findTarget: el => el && el.closest('.slots'), onDrop: tryPlace, onTap: tryPlace});
         $('tray').appendChild(c);
       });
@@ -560,7 +569,52 @@ $('rewardPrint').addEventListener('click', () => { Sound.click(); window.print()
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && rewardCloser) rewardCloser(); });
 document.addEventListener('pointerdown', () => Sound.unlock(), {once: true});
 if (window.speechSynthesis) speechSynthesis.getVoices();
-renderLobby();
+
+let screenMode = 'push';
+function placeScreen(screen){
+  if (screenMode === 'silent') return;
+  const hash = S.screenHash(screen || {});
+  const url = location.pathname + location.search + hash;
+  if (screenMode === 'replace' || location.hash === hash) history.replaceState(screen || {}, '', url);
+  else history.pushState(screen || {}, '', url);
+}
+function restoreScreen(raw){
+  const h = raw && raw.play ? { lesson: raw.lesson, unit: raw.unit, play: false } : raw;
+  if (raw && raw.play){
+    const prev = screenMode;
+    screenMode = 'replace';
+    placeScreen(h);
+    screenMode = prev;
+  }
+  if (h.unit){
+    const list = window.UNITS || [];
+    let unit = list.find(u => u.id === h.unit);
+    let lesson = null;
+    if (!unit && typeof findUnit === 'function'){
+      const found = findUnit(h.unit);
+      unit = found && found.unit;
+      lesson = found && found.lesson;
+    }
+    if (!lesson && h.lesson && window.LESSONS) lesson = window.LESSONS.find(ls => ls.id === h.lesson) || null;
+    if (unit){
+      if (typeof curLesson !== 'undefined') curLesson = lesson;
+      openUnit(unit);
+      return;
+    }
+  }
+  if (h.lesson && window.LESSONS && typeof openLesson === 'function'){
+    const ls = window.LESSONS.find(x => x.id === h.lesson);
+    if (ls){ openLesson(ls); return; }
+  }
+  renderLobby();
+}
+
+const bootHash = S.parseScreenHash(location.hash);
+screenMode = (bootHash.lesson || bootHash.unit || bootHash.play) ? 'silent' : 'replace';
+if (bootHash.lesson || bootHash.unit || bootHash.play) restoreScreen(bootHash);
+else renderLobby();
+screenMode = 'push';
+window.addEventListener('popstate', () => { screenMode = 'silent'; restoreScreen(S.parseScreenHash(location.hash)); screenMode = 'push'; });
 function refreshAfterScores(){
   if ($('play').classList.contains('active')) return;
   const lesson = $('lesson');
