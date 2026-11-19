@@ -234,7 +234,7 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261119d'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261119e'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
   assert.ok(readme.includes('?v=20261119c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
@@ -570,6 +570,11 @@ function testNewSubjects() {
   assert.strictEqual(P.keypadPush('1/2', '/'), '1/2');
   assert.strictEqual(P.keypadPush('', '又'), '');
   assert.strictEqual(P.cardSay('剛「ㄈㄢˇ」家'), '剛「空格」家');
+  const poem = '「海內存知己，天涯若比『ㄌㄧㄣˊ』」。引號裡的注音是哪個字？';
+  const poemSaid = P.cardSay(poem);
+  assert.ok(poemSaid.includes('海內存知己'), poemSaid);
+  assert.ok(poemSaid.includes('空格'), poemSaid);
+  assert.ok(!poemSaid.includes('ㄌㄧㄣ'), poemSaid);
   assert.strictEqual(P.spokenStem({ noTTS: true, mode: 'mc', q: '這裡的「得」怎麼讀？', opts: ['ㄉㄟˇ'] }), '');
   assert.ok(!P.spokenStem({ mode: 'card', q: '剛「ㄈㄢˇ」家的爸爸' }).includes('ㄈㄢ'));
 
@@ -616,12 +621,9 @@ function testNewSubjects() {
     assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>'), dir);
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
-    assert.ok(html.includes('../assets/subject.css?v=20261119d'), dir);
-    assert.ok(html.includes('../assets/subject-play.js?v=20261119d'), dir);
-    assert.ok(html.includes('data.js?v=20261119d'), dir);
-    assert.ok(html.includes('game.js?v=20261119d'), dir);
-    assert.ok(html.includes('../assets/gate.js?v=20261119c'), dir);
-    assert.ok(html.includes('../assets/unit-score.js?v=20261119c'), dir);
+    ['../assets/subject.css', '../assets/subject-play.js', 'data.js', 'game.js', '../assets/gate.js', '../assets/unit-score.js'].forEach(file => {
+      assert.ok(html.includes(file + '?v=20261119e'), dir + ' ' + file);
+    });
     assert.ok(game.includes('"chapter": "' + dir + '"'), dir);
     assert.ok(hub.includes("href: '" + dir + "/'"), dir);
     assert.ok(parentJs.includes("chapter: '" + dir + "'"), dir);
@@ -632,6 +634,9 @@ function testNewSubjects() {
       assert.strictEqual(unit.levels.length, 4, unit.id);
       assert.deepStrictEqual(unit.levels.map(lv => lv.id), ['hand', 'idea', 'boss', 'adv'], unit.id);
       assert.deepStrictEqual(unit.levels.map(lv => lv.kind), ['hand', 'idea', 'boss', 'adv'], unit.id);
+      unit.levels.forEach(lv => {
+        assert.ok(!['動手', '觀念', '計時挑戰', '進階'].includes(lv.name), unit.id + ' ' + lv.name);
+      });
       unit.levels.forEach(lv => {
         assert.strictEqual(lv.type, 'quiz', unit.id + ' ' + lv.id);
         assert.strictEqual(S.countItems(lv), lv.questions.length, unit.id + ' ' + lv.id);
@@ -655,7 +660,18 @@ function testNewSubjects() {
           } else if (q.mode === 'card') {
             const said = P.spokenStem(q);
             assert.ok(said.includes('空格'), q.id);
+            assert.ok(!/[ㄅ-ㄩ]/.test(said), q.id + ' spoken stem still has 注音');
             assert.ok(!said.includes(q.opts[0]), q.id + ' spoken stem contains the answer');
+            if (q.id === 'ch8-hand-5') assert.ok(said.includes('海內存知己'), said);
+          }
+          if (q.id === 'ch8-adv-1') {
+            assert.strictEqual(q.opts[0], '視覺和聽覺');
+            assert.ok(q.q.includes('蜜蜂營營'));
+          }
+          if (q.fig && q.fig.paint && q.fig.ax != null && q.id !== '7-3-adv-5') {
+            q.fig.paint.forEach(cell => {
+              assert.ok(cell[1] < q.fig.ax, q.id + ' figure paints the unknown side');
+            });
           }
           if (q.mode === 'mc' || q.mode === 'card') {
             assert.ok(q.opts && q.opts.length >= 2, q.id);
