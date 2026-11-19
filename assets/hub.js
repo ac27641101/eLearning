@@ -14,6 +14,55 @@
 
   var UNITS = [
     {
+      subject: 'chinese',
+      href: 'chinese-u3/',
+      icon: '📖',
+      title: '五上國語\n第參單元',
+      desc: '第七課到第九課'
+    },
+    {
+      subject: 'chinese',
+      href: 'chinese-u4/',
+      icon: '✨',
+      title: '五上國語\n第肆單元・平凡中的特別',
+      desc: '第十課到第十二課'
+    },
+    {
+      subject: 'math',
+      href: 'math-u6/',
+      icon: '➗',
+      title: '五上數學 U6\n異分母分數的加減',
+      desc: '加法、減法、分數的應用'
+    },
+    {
+      subject: 'math',
+      href: 'math-u7/',
+      icon: '🔷',
+      title: '五上數學 U7\n線對稱圖形',
+      desc: '對稱軸、對稱點，和剪紙'
+    },
+    {
+      subject: 'math',
+      href: 'math-u8/',
+      icon: '✖️',
+      title: '五上數學 U8\n整數四則運算',
+      desc: '連除、多步驟、分配律、平均'
+    },
+    {
+      subject: 'math',
+      href: 'math-u9/',
+      icon: '📐',
+      title: '五上數學 U9\n面積',
+      desc: '平行四邊形、三角形、梯形'
+    },
+    {
+      subject: 'math',
+      href: 'math-u10/',
+      icon: '🔺',
+      title: '五上數學 U10\n柱體、錐體和球',
+      desc: '分類、構成要素、展開圖和球'
+    },
+    {
       subject: 'social',
       href: 'social-ch3/',
       icon: '🌾',
