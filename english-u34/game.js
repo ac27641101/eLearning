@@ -510,11 +510,6 @@ async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
   const stars = game.tally.right;
-  try {
-    S.saveReviewLevel(CHAPTER, curUnit.id, curLevel.id, {
-      stars: stars, max: game.items, wrong: S.wrongList(game.tally), at: S.todayISO()
-    });
-  } catch (err) {}
   const before = loadScore(curUnit);
   const result = S.commitLevel(before, {
     levelId: curLevel.id,
@@ -522,6 +517,28 @@ async function finishLevel(){
     levelIds: S.levelIds(curUnit),
     iso: S.todayISO()
   });
+  try {
+    const at = S.todayISO();
+    const wrong = S.wrongList(game.tally);
+    const updates = [];
+    if (result.runLevels) {
+      (curUnit.levels || []).forEach(lv => {
+        if (typeof result.runLevels[lv.id] !== 'number') return;
+        updates.push({
+          levelId: lv.id,
+          stars: result.runLevels[lv.id],
+          max: S.countItems(lv),
+          wrong: lv.id === curLevel.id ? wrong : null,
+          at: at,
+          commitStars: true,
+          keepWrong: lv.id !== curLevel.id
+        });
+      });
+    } else {
+      updates.push({ levelId: curLevel.id, wrong: wrong, at: at, commitStars: false });
+    }
+    S.saveReviewLevels(CHAPTER, curUnit.id, updates);
+  } catch (err) {}
   if (result.wrote) saveScore(curUnit, result.state);
   const after = result.wrote ? result.state : before;
   if (stars && !game.practice) { Sound.win(); confetti(); } else if (!game.practice && stars === 0) Sound.bad();
@@ -560,7 +577,7 @@ function makeDraggable(card, {findTarget, onDrop, onTap}){
   let st = null;
   card.addEventListener('pointerdown', e => {
     if (card.classList.contains('ok') || game.over) return;
-    e.preventDefault(); Sound.unlock();
+    if (e.button != null && e.button !== 0) return;
     st = {x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null, over: null};
     try { card.setPointerCapture(e.pointerId); } catch (err) {}
   });
@@ -568,6 +585,7 @@ function makeDraggable(card, {findTarget, onDrop, onTap}){
     if (!st || st.id !== e.pointerId) return;
     if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 8){
       st.moved = true;
+      e.preventDefault();
       const r = card.getBoundingClientRect();
       st.ghost = card.cloneNode(true); st.ghost.classList.add('dragging'); st.ghost.classList.remove('sel');
       st.ghost.style.width = r.width + 'px'; st.dx = e.clientX - r.left; st.dy = e.clientY - r.top;
@@ -635,43 +653,62 @@ function mountTiles(container, spec){
     draw();
   });
   function draw(){
-    line.innerHTML = '';
-    bank.innerHTML = '';
     if (spec.mode === 'spell'){
       const n = Math.max(spec.pieces.length, placed.length);
+      while (line.children.length > n) line.lastChild.remove();
+      while (line.children.length < n) line.appendChild(document.createElement('div'));
       for (let i = 0; i < n; i++){
-        const slot = document.createElement('div');
+        const slot = line.children[i];
         slot.className = 'slot-box' + (placed[i] ? ' filled' : '');
-        if (placed[i]) slot.appendChild(tileEl(placed[i], true));
-        line.appendChild(slot);
+        const tile = placed[i] ? tileEl(placed[i]) : null;
+        if (tile){ if (slot.firstChild !== tile) slot.replaceChildren(tile); }
+        else if (slot.firstChild) slot.replaceChildren();
       }
     } else if (!placed.length){
+      line.replaceChildren();
       const hint = document.createElement('span');
       hint.className = 'line-hint';
       hint.textContent = '點字卡排到這裡，或拖進來';
       line.appendChild(hint);
-    } else placed.forEach(p => line.appendChild(tileEl(p, true)));
-    pool.forEach(p => bank.appendChild(tileEl(p, false)));
+    } else {
+      const row = placed.map(tileEl);
+      if (line.childNodes.length !== row.length || row.some((el, i) => line.childNodes[i] !== el)){
+        const frag = document.createDocumentFragment();
+        row.forEach(el => frag.appendChild(el));
+        line.replaceChildren(frag);
+      }
+    }
+    const bankTiles = pool.map(tileEl);
+    if (bank.childNodes.length !== bankTiles.length || bankTiles.some((el, i) => bank.childNodes[i] !== el)){
+      const frag = document.createDocumentFragment();
+      bankTiles.forEach(el => frag.appendChild(el));
+      bank.replaceChildren(frag);
+    }
     clearBtn.disabled = locked;
   }
-  function tileEl(p, inLine){
-    const el = document.createElement('div');
-    el.className = 'ltile' + (inLine ? ' in-line' : '');
-    el.textContent = p.t;
-    el.dataset.id = p.id;
-    el.setAttribute('role', 'button');
-    el.tabIndex = 0;
-    if (locked){ el.classList.add('ok'); return el; }
-    makeDraggable(el, {
-      findTarget: node => node && node.closest('.ltile.in-line, .build-line, .tile-bank'),
-      onDrop: (card, target) => {
-        if (target.classList.contains('tile-bank')) putBank(p);
-        else if (target.classList.contains('ltile') && target.dataset.id !== p.id) insertBefore(p, target.dataset.id);
-        else putLine(p);
-      },
-      onTap: () => { inLine ? putBank(p) : putLine(p); }
-    });
-    return el;
+  function tileEl(p){
+    if (!p.el){
+      const el = document.createElement('div');
+      el.className = 'ltile';
+      el.textContent = p.t;
+      el.dataset.id = p.id;
+      el.setAttribute('role', 'button');
+      el.tabIndex = 0;
+      p.el = el;
+      makeDraggable(el, {
+        findTarget: node => node && node.closest('.ltile.in-line, .build-line, .tile-bank'),
+        onDrop: (card, target) => {
+          if (locked) return;
+          if (target.classList.contains('tile-bank')) putBank(p);
+          else if (target.classList.contains('ltile') && target.dataset.id !== p.id) insertBefore(p, target.dataset.id);
+          else putLine(p);
+        },
+        onTap: () => { if (!locked) (placed.indexOf(p) >= 0 ? putBank(p) : putLine(p)); }
+      });
+    }
+    p.el.classList.toggle('in-line', placed.indexOf(p) >= 0);
+    p.el.classList.toggle('ok', locked);
+    return p.el;
   }
   function take(p){
     pool = pool.filter(x => x !== p);

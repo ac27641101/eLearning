@@ -16,8 +16,9 @@ body::before{
   content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   background:linear-gradient(180deg,#7cc8ff 0%,#b9e6ff 62%,#5dbb3f 62%,#5dbb3f 66%,#8b5a2b 66%);
 }
-.cloud{position:fixed;z-index:0;width:120px;height:28px;background:#fff;opacity:.85;box-shadow:24px -16px 0 #fff,56px -16px 0 #fff;pointer-events:none;animation:drift 60s linear infinite}
-.cloud.c2{top:68%;width:90px;animation-duration:80s;animation-delay:-30s}
+.sky-deco{position:fixed;left:0;right:0;top:0;height:58%;overflow:hidden;z-index:0;pointer-events:none}
+.cloud{position:absolute;z-index:0;top:14%;width:120px;height:28px;background:#fff;opacity:.85;box-shadow:24px -16px 0 #fff,56px -16px 0 #fff;pointer-events:none;animation:drift 60s linear infinite}
+.cloud.c2{top:42%;width:90px;animation-duration:80s;animation-delay:-30s}
 @keyframes drift{from{transform:translateX(-200px)}to{transform:translateX(110vw)}}
 .px{
   border:4px solid var(--ink);border-radius:8px;

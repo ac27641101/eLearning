@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261119b'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261119c'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -233,10 +233,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261119b'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261119c'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261119b') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261119c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +249,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261119b'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261119c'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -469,6 +469,19 @@ function testLevelMarkAndReview() {
   assert.strictEqual(done.run, null);
   assert.strictEqual(S.levelMark(done, 'lv1', null), '還沒有每關紀錄');
   assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8 }), '上次 ★ 7 / 8');
+  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 4, max: 0, wrong: [{ q: '題', a: '錯', c: '對' }] }), '還沒有每關紀錄');
+  const partial = S.memoryStorage();
+  S.saveReviewLevel('social-ch3', 'sugar', 'hand', {
+    stars: 8, max: 8, wrong: [{ q: '舊題', a: '舊答', c: '對' }], at: '2026-11-01'
+  }, partial);
+  S.saveReviewLevel('social-ch3', 'sugar', 'hand', {
+    wrong: [{ q: '新題', a: '新答', c: '對' }], at: '2026-11-02', commitStars: false
+  }, partial);
+  const kept = S.loadReview('social-ch3', 'sugar', partial).levels.hand;
+  assert.strictEqual(kept.stars, 8);
+  assert.strictEqual(kept.max, 8);
+  assert.strictEqual(kept.wrong[0].q, '新題');
+  assert.strictEqual(S.levelMark(S.emptyState(), 'hand', kept), '上次 ★ 8 / 8');
 
   const practice = S.emptyState();
   practice.scores = [1, 1, 1];

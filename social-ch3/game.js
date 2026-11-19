@@ -399,11 +399,6 @@ async function finishLevel(){
   if (!game || game.over) return;
   game.over = true; stopTimer();
   const stars = game.tally.right;
-  try {
-    S.saveReviewLevel(CHAPTER, curUnit.id, curLevel.id, {
-      stars: stars, max: game.items, wrong: S.wrongList(game.tally), at: S.todayISO()
-    });
-  } catch (err) {}
   const before = loadScore(curUnit);
   const result = S.commitLevel(before, {
     levelId: curLevel.id,
@@ -411,6 +406,28 @@ async function finishLevel(){
     levelIds: S.levelIds(curUnit),
     iso: S.todayISO()
   });
+  try {
+    const at = S.todayISO();
+    const wrong = S.wrongList(game.tally);
+    const updates = [];
+    if (result.runLevels) {
+      (curUnit.levels || []).forEach(lv => {
+        if (typeof result.runLevels[lv.id] !== 'number') return;
+        updates.push({
+          levelId: lv.id,
+          stars: result.runLevels[lv.id],
+          max: S.countItems(lv),
+          wrong: lv.id === curLevel.id ? wrong : null,
+          at: at,
+          commitStars: true,
+          keepWrong: lv.id !== curLevel.id
+        });
+      });
+    } else {
+      updates.push({ levelId: curLevel.id, wrong: wrong, at: at, commitStars: false });
+    }
+    S.saveReviewLevels(CHAPTER, curUnit.id, updates);
+  } catch (err) {}
   if (result.wrote) saveScore(curUnit, result.state);
   const after = result.wrote ? result.state : before;
   if (stars && !game.practice) { Sound.win(); confetti(); } else if (!game.practice && stars === 0) Sound.bad();
@@ -445,14 +462,15 @@ function makeDraggable(card, {findTarget, onDrop, onTap}){
   let st = null;
   card.addEventListener('pointerdown', e => {
     if (card.classList.contains('ok') || game.over) return;
-    e.preventDefault(); Sound.unlock();
+    if (e.button != null && e.button !== 0) return;
     st = {x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null, over: null};
-    card.setPointerCapture(e.pointerId);
+    try { card.setPointerCapture(e.pointerId); } catch (err) {}
   });
   card.addEventListener('pointermove', e => {
     if (!st || st.id !== e.pointerId) return;
     if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 8){
       st.moved = true;
+      e.preventDefault();
       const r = card.getBoundingClientRect();
       st.ghost = card.cloneNode(true); st.ghost.classList.add('dragging'); st.ghost.classList.remove('sel');
       st.ghost.style.width = r.width + 'px'; st.dx = e.clientX - r.left; st.dy = e.clientY - r.top;
