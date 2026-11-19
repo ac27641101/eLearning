@@ -6,6 +6,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 require(path.join(root, 'assets/unit-score.js'));
@@ -233,7 +234,7 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261119c'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261119d'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
   assert.ok(readme.includes('?v=20261119c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
@@ -249,7 +250,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261119c'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261119d'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -534,6 +535,162 @@ function testLevelMarkAndReview() {
   assert.ok(scoreRules.includes('validShape(scoreId)'));
 }
 
+function loadChapterUnits(dir) {
+  const ctx = { window: {} };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(root, dir, 'data.js'), 'utf8'), ctx, { filename: dir + '/data.js' });
+  return JSON.parse(JSON.stringify(ctx.window.UNITS));
+}
+
+function testNewSubjects() {
+  require(path.join(root, 'assets/subject-play.js'));
+  const P = global.SubjectPlay;
+  assert.ok(P, 'subject-play exports SubjectPlay');
+  assert.strictEqual(P.valuesEqual('9/12', '3/4'), true);
+  assert.strictEqual(P.valuesEqual('6/8', '3/4'), true);
+  assert.strictEqual(P.valuesEqual('3/2', '1又1/2'), true);
+  assert.strictEqual(P.valuesEqual('1又2/4', '6/4'), true);
+  assert.strictEqual(P.valuesEqual('1.5', '3/2'), true);
+  assert.strictEqual(P.valuesEqual('2', '4/2'), true);
+  assert.strictEqual(P.valuesEqual('1/2', '1/3'), false);
+  assert.strictEqual(P.valuesEqual('1又', '1'), false);
+  assert.strictEqual(P.valuesEqual('', '0'), false);
+  assert.strictEqual(P.valuesEqual('1/0', '0'), false);
+  let typed = '';
+  ['3', '/', '2'].forEach(k => { typed = P.keypadPush(typed, k); });
+  assert.strictEqual(typed, '3/2');
+  let mixed = '';
+  ['1', '又', '1', '/', '2'].forEach(k => { mixed = P.keypadPush(mixed, k); });
+  assert.strictEqual(mixed, '1又1/2');
+  assert.strictEqual(P.valuesEqual(typed, mixed), true);
+  let ninth = '';
+  ['9', '/', '1', '2'].forEach(k => { ninth = P.keypadPush(ninth, k); });
+  assert.strictEqual(P.valuesEqual(ninth, '3/4'), true);
+  assert.strictEqual(P.valuesEqual(ninth, '6/8'), true);
+  assert.strictEqual(P.keypadPush('1/2', '/'), '1/2');
+  assert.strictEqual(P.keypadPush('', '又'), '');
+  assert.strictEqual(P.cardSay('剛「ㄈㄢˇ」家'), '剛「空格」家');
+  assert.strictEqual(P.spokenStem({ noTTS: true, mode: 'mc', q: '這裡的「得」怎麼讀？', opts: ['ㄉㄟˇ'] }), '');
+  assert.ok(!P.spokenStem({ mode: 'card', q: '剛「ㄈㄢˇ」家的爸爸' }).includes('ㄈㄢ'));
+
+  const play = fs.readFileSync(path.join(root, 'assets/subject-play.js'), 'utf8');
+  const renderQ = play.slice(play.indexOf('function renderQuestion'), play.indexOf('function renderChoice'));
+  assert.ok(renderQ.includes('q.noTTS'), 'pronunciation questions are flagged before speech');
+  assert.ok(renderQ.includes('say.hidden = !!q.noTTS'));
+  assert.ok(!renderQ.includes('speak('), 'a new question is not read aloud by itself');
+  assert.ok(play.includes('spokenStem(game && game.question)'));
+  assert.ok(play.includes('S.shuffle(lv.questions)'));
+  assert.ok(play.includes('S.choiceDeck(q.opts)'));
+  assert.ok(play.includes('valuesEqual(buf, q.accept)'));
+  assert.ok(play.includes('if (result.runLevels)'));
+  assert.ok(play.includes('commitStars: true'));
+  assert.ok(play.includes('commitStars: false'));
+  const finish = play.slice(play.indexOf('async function finishLevel'), play.indexOf('function makeDraggable'));
+  const labels = [...finish.matchAll(/label: '([^']+)'/g)].map(m => m[1]);
+  assert.deepStrictEqual(labels, ['🔁 再玩一次', '▶ 下一關', '📋 回小單元']);
+  assert.ok(play.includes("home.textContent = id === 'play' ? '⬅ 回小單元' : '⬅ 回單元'"));
+  assert.ok(play.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => { Sound.click(); renderLobby(); });"));
+  assert.ok(play.includes('這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。'));
+  assert.ok(play.includes('if (preview) S.previewView(S.todayISO())'));
+  assert.ok(play.includes('preview: true'));
+  assert.ok(play.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"));
+
+  const chapters = {
+    'chinese-u3': { subject: 'chinese', ids: ['ch7', 'ch8', 'ch9'], time: 120 },
+    'chinese-u4': { subject: 'chinese', ids: ['ch10', 'ch11', 'ch12'], time: 120 },
+    'math-u6': { subject: 'math', ids: ['6-1', '6-2', '6-3'], time: 150 },
+    'math-u7': { subject: 'math', ids: ['7-1', '7-2', '7-3'], time: 150 },
+    'math-u8': { subject: 'math', ids: ['8-1', '8-2', '8-3', '8-4'], time: 150 },
+    'math-u9': { subject: 'math', ids: ['9-1', '9-2', '9-3', '9-4'], time: 150 },
+    'math-u10': { subject: 'math', ids: ['10-1', '10-2', '10-3', '10-5'], time: 150 }
+  };
+  const hub = fs.readFileSync(path.join(root, 'assets/hub.js'), 'utf8');
+  const parentJs = fs.readFileSync(path.join(root, 'parent/parent.js'), 'utf8');
+  let questions = 0;
+  let noTts = 0;
+  Object.keys(chapters).forEach(dir => {
+    const spec = chapters[dir];
+    const html = fs.readFileSync(path.join(root, dir, 'index.html'), 'utf8');
+    const game = fs.readFileSync(path.join(root, dir, 'game.js'), 'utf8');
+    assert.ok(html.includes('href="../#/' + spec.subject + '">⬅ 回科目</a>'), dir);
+    assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>'), dir);
+    assert.ok(html.includes('id="homeBtn"'), dir);
+    assert.ok(!html.includes('回學習島'), dir);
+    assert.ok(html.includes('../assets/subject.css?v=20261119d'), dir);
+    assert.ok(html.includes('../assets/subject-play.js?v=20261119d'), dir);
+    assert.ok(html.includes('data.js?v=20261119d'), dir);
+    assert.ok(html.includes('game.js?v=20261119d'), dir);
+    assert.ok(html.includes('../assets/gate.js?v=20261119c'), dir);
+    assert.ok(html.includes('../assets/unit-score.js?v=20261119c'), dir);
+    assert.ok(game.includes('"chapter": "' + dir + '"'), dir);
+    assert.ok(hub.includes("href: '" + dir + "/'"), dir);
+    assert.ok(parentJs.includes("chapter: '" + dir + "'"), dir);
+    const units = loadChapterUnits(dir);
+    assert.deepStrictEqual(units.map(u => u.id), spec.ids, dir + ' unit ids');
+    units.forEach(unit => {
+      assert.ok(parentJs.includes("id: '" + unit.id + "'"), unit.id);
+      assert.strictEqual(unit.levels.length, 4, unit.id);
+      assert.deepStrictEqual(unit.levels.map(lv => lv.id), ['hand', 'idea', 'boss', 'adv'], unit.id);
+      assert.deepStrictEqual(unit.levels.map(lv => lv.kind), ['hand', 'idea', 'boss', 'adv'], unit.id);
+      unit.levels.forEach(lv => {
+        assert.strictEqual(lv.type, 'quiz', unit.id + ' ' + lv.id);
+        assert.strictEqual(S.countItems(lv), lv.questions.length, unit.id + ' ' + lv.id);
+      });
+      const counts = unit.levels.map(lv => lv.questions.length);
+      assert.strictEqual(counts.reduce((n, x) => n + x, 0), 30, unit.id);
+      assert.strictEqual(counts[0], 8, unit.id);
+      assert.strictEqual(counts[1], 8, unit.id);
+      if (unit.id === '8-1') assert.deepStrictEqual(counts, [8, 8, 8, 6], 'bank keeps 8-1 as 8/8/8/6');
+      else assert.deepStrictEqual(counts, [8, 8, 7, 7], unit.id);
+      assert.strictEqual(unit.levels[2].time, spec.time, unit.id);
+      assert.ok(!unit.levels[0].time && !unit.levels[1].time && !unit.levels[3].time, unit.id);
+      assert.strictEqual(S.unitItemCount(unit), 30, unit.id);
+      unit.levels.forEach(lv => {
+        lv.questions.forEach(q => {
+          questions += 1;
+          if (q.noTTS) {
+            noTts += 1;
+            assert.strictEqual(P.spokenStem(q), '', q.id);
+            assert.ok(q.q.includes('怎麼讀'), q.id);
+          } else if (q.mode === 'card') {
+            const said = P.spokenStem(q);
+            assert.ok(said.includes('空格'), q.id);
+            assert.ok(!said.includes(q.opts[0]), q.id + ' spoken stem contains the answer');
+          }
+          if (q.mode === 'mc' || q.mode === 'card') {
+            assert.ok(q.opts && q.opts.length >= 2, q.id);
+            assert.strictEqual(new Set(q.opts).size, q.opts.length, q.id + ' duplicate option');
+            for (let i = 0; i < q.opts.length; i++) {
+              for (let j = i + 1; j < q.opts.length; j++) {
+                if (P.parseValue(q.opts[i]) && P.parseValue(q.opts[j])) {
+                  assert.strictEqual(P.valuesEqual(q.opts[i], q.opts[j]), false, q.id + ' equivalent options');
+                }
+              }
+            }
+          }
+          if (q.mode === 'keypad') {
+            assert.ok(q.accept, q.id);
+            assert.strictEqual(P.valuesEqual(q.a, q.accept), true, q.id);
+            assert.ok(!q.opts, q.id + ' keypad must not ship a visible choice list');
+          }
+          if (q.mode === 'tiles' || q.mode === 'order') {
+            assert.ok(q.tokens.length >= 2, q.id);
+            assert.strictEqual(new Set(q.tokens).size, q.tokens.length, q.id);
+          }
+          assert.ok(!Object.prototype.hasOwnProperty.call(q, 'display'), q.id);
+          assert.ok(!Object.prototype.hasOwnProperty.call(q, 'why') || q.why, q.id);
+        });
+      });
+    });
+  });
+  assert.strictEqual(questions, 720);
+  assert.strictEqual(noTts, 5);
+  assert.ok(parentJs.includes('第七課 美景閒情——詩兩首'));
+  assert.ok(parentJs.includes('10-5 球'));
+  assert.ok(parentJs.includes('7-3～7-4 繪製線對稱圖形與應用'));
+}
+
+testNewSubjects();
 testLevelMarkAndReview();
 testThreeScoresStayUsed();
 testOneScoreLeavesTwoChances();
