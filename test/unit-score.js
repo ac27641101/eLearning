@@ -607,3 +607,4 @@ testResetGenerationDropsStaleAttempts();
 testExamBestAndSwitchMinutes();
 testLoginAccountAndRules();
 console.log('unit-score tests passed');
+require('./option-length.js').main();
