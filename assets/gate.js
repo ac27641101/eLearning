@@ -304,6 +304,20 @@
     });
   }
 
+  function writeReview(uid, chapter, unitId, review) {
+    var ref = fs.doc(db, 'users', uid, 'reviews', root.UnitScore.docId(chapter, unitId));
+    return fs.runTransaction(db, function (tx) {
+      return tx.get(ref).then(function (snap) {
+        var cloud = snap.exists() ? snap.data() : null;
+        var merged = root.UnitScore.mergeReview(cloud, review);
+        tx.set(ref, root.UnitScore.toReviewCloud(chapter, unitId, merged));
+        return merged;
+      });
+    }).then(function (merged) {
+      root.UnitScore.noteReview(chapter, unitId, merged);
+    }).catch(function () {});
+  }
+
   function hydrateScores(user) {
     var finished = false;
     function finish(updated) {
@@ -321,15 +335,33 @@
       root.UnitScore.setCloudWriter(function (chapter, unitId, state) {
         return writeScore(user.uid, chapter, unitId, state);
       });
-      return fs.getDocs(fs.collection(db, 'users', user.uid, 'scores')).then(function (snap) {
-        snap.forEach(function (docSnap) {
-          var data = docSnap.data() || {};
-          var parts = docSnap.id.split('__');
-          var chapter = data.chapter || parts[0];
-          var unitId = data.unitId || parts.slice(1).join('__');
-          if (chapter && unitId) root.UnitScore.noteCloud(chapter, unitId, data);
-        });
+      root.UnitScore.setReviewWriter(function (chapter, unitId, review) {
+        return writeReview(user.uid, chapter, unitId, review);
       });
+      return Promise.all([
+        fs.getDocs(fs.collection(db, 'users', user.uid, 'scores')).then(function (snap) {
+          snap.forEach(function (docSnap) {
+            var data = docSnap.data() || {};
+            var parts = docSnap.id.split('__');
+            var chapter = data.chapter || parts[0];
+            var unitId = data.unitId || parts.slice(1).join('__');
+            if (chapter && unitId) root.UnitScore.noteCloud(chapter, unitId, data);
+          });
+        }),
+        fs.getDocs(fs.collection(db, 'users', user.uid, 'reviews')).then(function (snap) {
+          var entries = [];
+          snap.forEach(function (docSnap) {
+            var data = docSnap.data() || {};
+            var parts = docSnap.id.split('__');
+            entries.push({
+              chapter: data.chapter || parts[0],
+              unitId: data.unitId || parts.slice(1).join('__'),
+              data: data
+            });
+          });
+          root.UnitScore.replaceReviews(entries);
+        }).catch(function () {})
+      ]);
     }).then(function () {
       finish(true);
     }).catch(function () {
@@ -432,6 +464,7 @@
         doc: fsMod.doc,
         getDoc: fsMod.getDoc,
         setDoc: fsMod.setDoc,
+        deleteDoc: fsMod.deleteDoc,
         getDocs: fsMod.getDocs,
         collection: fsMod.collection,
         query: fsMod.query,

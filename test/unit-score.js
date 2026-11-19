@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261118e'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261119a'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -233,10 +233,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261118e'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261119a'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261118e') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261119a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +249,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261118e'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261119a'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -458,6 +458,61 @@ function testLoginAccountAndRules() {
   assert.ok(hub.includes('家長頁'));
 }
 
+function testLevelMarkAndReview() {
+  const running = S.emptyState();
+  running.run = { levels: { lv1: 7 } };
+  assert.strictEqual(S.levelMark(running, 'lv1'), '這次 ★ 7');
+  assert.strictEqual(S.levelMark(running, 'lv2', { stars: 8, max: 10 }), '這次還沒玩');
+
+  const done = S.emptyState();
+  done.scores = [29];
+  assert.strictEqual(done.run, null);
+  assert.strictEqual(S.levelMark(done, 'lv1', null), '還沒有每關紀錄');
+  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8 }), '上次 ★ 7 / 8');
+
+  const practice = S.emptyState();
+  practice.scores = [1, 1, 1];
+  assert.strictEqual(S.isPractice(practice), true);
+  assert.strictEqual(S.levelMark(practice, 'lv1', { stars: 6, max: 8 }), '練習・上次 ★ 6 / 8');
+  assert.strictEqual(S.levelMark(practice, 'lv1', null), '練習');
+
+  const box = S.memoryStorage();
+  const scoreKey = S.storageKey('science-ch3', 'u1');
+  S.save('science-ch3', 'u1', { scores: [29], rewards: {}, run: null }, box);
+  const before = box.getItem(scoreKey);
+  const tally = S.createTally();
+  S.noteWrong(tally, 'q1');
+  S.rememberWrong(tally, { id: 'q1', q: '題目很長'.repeat(80), a: '孩子的答案', c: '正確答案' });
+  S.noteRight(tally, 'q2');
+  S.saveReviewLevel('science-ch3', 'u1', 'lv1', {
+    stars: 7, max: 8, wrong: S.wrongList(tally), at: '2026-11-19'
+  }, box);
+  assert.strictEqual(box.getItem(scoreKey), before);
+  const review = S.loadReview('science-ch3', 'u1', box);
+  assert.strictEqual(review.levels.lv1.stars, 7);
+  assert.strictEqual(review.levels.lv1.max, 8);
+  assert.strictEqual(review.levels.lv1.wrong.length, 1);
+  assert.strictEqual(review.levels.lv1.wrong[0].a, '孩子的答案');
+  assert.ok(review.levels.lv1.wrong[0].q.length <= 200);
+  const cloud = S.toReviewCloud('science-ch3', 'u1', review);
+  assert.strictEqual(cloud.chapter + '__' + cloud.unitId, S.docId('science-ch3', 'u1'));
+  assert.ok(cloud.updatedAt);
+  assert.ok(!cloud.scores);
+  const html = S.reviewBodyHtml(review.levels.lv1);
+  assert.ok(html.includes('上次這關錯了 1 題'));
+  assert.ok(html.includes('你的答案'));
+  assert.ok(html.includes('正確答案'));
+  assert.ok(S.reviewBodyHtml({ stars: 8, max: 8, wrong: [] }).includes('上次全對！'));
+  const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
+  assert.ok(rules.includes('match /reviews/{reviewId}'));
+  assert.ok(rules.includes('reviewId == request.resource.data.chapter + \'__\' + request.resource.data.unitId'));
+  assert.ok(rules.includes('request.resource.data.levels.size() <= 8'));
+  const scoreRules = rules.slice(rules.indexOf('match /scores/{scoreId}'), rules.indexOf('match /reviews/{reviewId}'));
+  assert.ok(scoreRules.includes('childScoreWrite'));
+  assert.ok(scoreRules.includes('validShape(scoreId)'));
+}
+
+testLevelMarkAndReview();
 testThreeScoresStayUsed();
 testOneScoreLeavesTwoChances();
 testTwoScoresLeaveOneChance();

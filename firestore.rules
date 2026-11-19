@@ -134,6 +134,24 @@ service cloud.firestore {
         );
     }
 
+    function validReview(reviewId) {
+      return request.resource.data.keys().hasOnly(['chapter', 'unitId', 'levels', 'updatedAt'])
+        && request.resource.data.chapter is string
+        && request.resource.data.unitId is string
+        && request.resource.data.chapter.size() > 0
+        && request.resource.data.chapter.size() < 40
+        && request.resource.data.unitId.size() > 0
+        && request.resource.data.unitId.size() < 60
+        && request.resource.data.chapter.matches('^[A-Za-z0-9_-]+$')
+        && request.resource.data.unitId.matches('^[A-Za-z0-9_-]+$')
+        && reviewId == request.resource.data.chapter + '__' + request.resource.data.unitId
+        && request.resource.data.levels is map
+        && request.resource.data.levels.size() <= 8
+        && request.resource.data.updatedAt is string
+        && request.resource.data.updatedAt.size() > 8
+        && request.resource.data.updatedAt.size() < 40;
+    }
+
     match /users/{uid} {
       allow get: if isOwner(uid) || isParent();
       allow list: if isParent();
@@ -143,6 +161,12 @@ service cloud.firestore {
         allow get, list: if isOwner(uid) || isParent();
         allow create, update: if childScoreWrite(uid, scoreId);
         allow create, update: if isParent() && validShape(scoreId);
+        allow delete: if isParent();
+      }
+
+      match /reviews/{reviewId} {
+        allow get, list: if isOwner(uid) || isParent();
+        allow create, update: if (isOwner(uid) || isParent()) && validReview(reviewId);
         allow delete: if isParent();
       }
     }

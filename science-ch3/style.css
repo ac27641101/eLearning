@@ -74,12 +74,16 @@ a.px-btn{text-decoration:none;display:inline-flex;align-items:center;justify-con
 .chip.k-adv{background:#e8433a}
 .unit-desc{margin:0;background:rgba(255,255,255,.9);padding:10px 14px;font-size:16px;line-height:1.6}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.lv-card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;background:#fff;padding:14px;color:var(--ink);font-size:17px}
+.lv-card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;background:#fff;padding:14px;color:var(--ink);font-size:17px;cursor:pointer}
 .lv-card .lv-ico{font-size:40px}
 .lv-card .lv-name{font-size:20px;font-weight:900}
 .lv-card .lv-how{font-size:14px;color:#6a5a40;font-weight:700;line-height:1.5}
 .lv-card .lv-st{font-size:22px;color:#d1c3a0}
 .lv-card .lv-st b{color:#f0a800}
+.lv-review{align-self:flex-start;background:#8d6e63;font-size:15px;padding:6px 12px}
+.wrong-item{margin:10px 0;padding-top:8px;border-top:2px solid rgba(0,0,0,.12);text-align:left}
+.ans-bad{color:#b3261e}
+.ans-good{color:#2d7a34}
 .ask{display:flex;align-items:center;gap:10px;background:#ffffff;color:var(--ink);padding:10px 14px;font-size:clamp(18px,4vw,22px);line-height:1.5}
 .ask span{flex:1 1 auto}
 .say-btn{font-size:14px;padding:6px 10px;white-space:nowrap;min-height:44px}

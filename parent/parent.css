@@ -40,6 +40,12 @@
 .test-fold .kid{background:#f4f1ea;color:#6d675c}
 .test-fold .kid h2,.test-fold .total-min,.test-fold .total-min b,.test-fold .account{color:#6d675c}
 .test-fold .subject-block h3,.test-fold .chapter-block h4,.test-fold .score-name{color:#6d675c}
+.wrong-fold{margin:0 0 8px;background:#fff;padding:8px 10px}
+.wrong-fold summary{cursor:pointer;font-size:15px}
+.wrong-level{margin-top:8px;text-align:left}
+.wrong-item{margin:6px 0;line-height:1.45}
+.ans-bad{color:#b3261e}
+.ans-good{color:#2d7a34}
 @media (max-width:800px){
   .score-row{grid-template-columns:1fr 1fr}
   .score-name,.row-end{grid-column:1 / -1}
