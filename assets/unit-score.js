@@ -374,10 +374,10 @@
     const levelId = info.levelId;
     const stars = Math.max(0, Math.round(info.stars || 0));
     if (isPractice(next)) {
-      return { state: next, wrote: false, practice: true, replay: false, completed: false, total: null, unlocked: [] };
+      return { state: next, wrote: false, practice: true, replay: false, completed: false, total: null, unlocked: [], runLevels: null };
     }
     if (next.run && Object.prototype.hasOwnProperty.call(next.run.levels, levelId)) {
-      return { state: next, wrote: false, practice: false, replay: true, completed: false, total: null, unlocked: [] };
+      return { state: next, wrote: false, practice: false, replay: true, completed: false, total: null, unlocked: [], runLevels: null };
     }
     if (!next.run) next.run = { levels: {} };
     next.run.levels[levelId] = stars;
@@ -385,7 +385,9 @@
     const unlocked = [];
     let total = null;
     let completed = false;
+    let runLevels = null;
     if (done) {
+      runLevels = Object.assign({}, next.run.levels);
       total = ids.reduce((n, id) => n + next.run.levels[id], 0);
       if (next.scores.length < ATTEMPT_LIMIT) {
         next.scores.push(Math.max(0, Math.min(STAR_MAX, total)));
@@ -403,7 +405,7 @@
       }
       next.run = null;
     }
-    return { state: next, wrote: true, practice: false, replay: false, completed: completed, total: total, unlocked: unlocked };
+    return { state: next, wrote: true, practice: false, replay: false, completed: completed, total: total, unlocked: unlocked, runLevels: runLevels };
   }
 
   function restartRun(state) {
@@ -527,12 +529,10 @@
   }
 
   function lastRunText(levelReview) {
-    if (!levelReview || typeof levelReview.stars !== 'number' || !isFinite(levelReview.stars)) return '';
+    if (!levelReview || typeof levelReview.max !== 'number' || !isFinite(levelReview.max) || levelReview.max <= 0) return '';
+    if (typeof levelReview.stars !== 'number' || !isFinite(levelReview.stars)) return '';
     const stars = Math.max(0, Math.round(levelReview.stars));
-    if (typeof levelReview.max === 'number' && isFinite(levelReview.max)) {
-      return '上次 ★ ' + stars + ' / ' + Math.max(0, Math.round(levelReview.max));
-    }
-    return '上次 ★ ' + stars;
+    return '上次 ★ ' + stars + ' / ' + Math.max(0, Math.round(levelReview.max));
   }
 
   let reviewShadow = {};
@@ -619,23 +619,47 @@
     } catch (e) { /* 錯題寫入失敗不能擋住計分 */ }
   }
 
+  function writeReviewDoc(chapter, unitId, next, storage) {
+    const ids = Object.keys(next.levels);
+    if (ids.length > 8) {
+      ids.sort((a, b) => String(next.levels[a].at).localeCompare(String(next.levels[b].at)));
+      ids.forEach(id => {
+        if (Object.keys(next.levels).length > 8) delete next.levels[id];
+      });
+    }
+    const saved = normalizeReview(next);
+    const box = resolveBox(storage);
+    const key = reviewKeyFor(chapter, unitId, storage);
+    if (!storage) reviewShadow[docId(chapter, unitId)] = saved;
+    writeReviewKey(box, key, saved);
+    if (!storage) queueReview(chapter, unitId, saved);
+  }
+
+  function applyReviewUpdate(next, record) {
+    const levelId = record.levelId;
+    const prev = next.levels[levelId];
+    const incoming = normalizeReviewLevel(record);
+    if (record.commitStars === false) {
+      incoming.stars = prev ? prev.stars : 0;
+      incoming.max = prev ? prev.max : 0;
+    }
+    if (record.keepWrong && prev) incoming.wrong = prev.wrong || [];
+    next.levels[levelId] = incoming;
+  }
+
   function saveReviewLevel(chapter, unitId, levelId, record, storage) {
     try {
-      const box = resolveBox(storage);
-      const key = reviewKeyFor(chapter, unitId, storage);
       const next = loadReview(chapter, unitId, storage);
-      next.levels[levelId] = normalizeReviewLevel(record);
-      const ids = Object.keys(next.levels);
-      if (ids.length > 8) {
-        ids.sort((a, b) => String(next.levels[a].at).localeCompare(String(next.levels[b].at)));
-        ids.forEach(id => {
-          if (id !== levelId && Object.keys(next.levels).length > 8) delete next.levels[id];
-        });
-      }
-      const saved = normalizeReview(next);
-      if (!storage) reviewShadow[docId(chapter, unitId)] = saved;
-      writeReviewKey(box, key, saved);
-      if (!storage) queueReview(chapter, unitId, saved);
+      applyReviewUpdate(next, Object.assign({ levelId: levelId }, record || {}));
+      writeReviewDoc(chapter, unitId, next, storage);
+    } catch (e) { /* 錯題寫入失敗不能擋住計分 */ }
+  }
+
+  function saveReviewLevels(chapter, unitId, updates, storage) {
+    try {
+      const next = loadReview(chapter, unitId, storage);
+      (updates || []).forEach(update => applyReviewUpdate(next, update || {}));
+      writeReviewDoc(chapter, unitId, next, storage);
     } catch (e) { /* 錯題寫入失敗不能擋住計分 */ }
   }
 
@@ -832,6 +856,7 @@
     levelMark: levelMark,
     loadReview: loadReview,
     saveReviewLevel: saveReviewLevel,
+    saveReviewLevels: saveReviewLevels,
     noteReview: noteReview,
     replaceReviews: replaceReviews,
     clearReview: clearReview,
