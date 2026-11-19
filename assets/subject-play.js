@@ -6,8 +6,15 @@
 (function (root) {
   'use strict';
 
+  function isBopomofo(text) {
+    return /[ㄅ-ㄩˊˇˋ˙]/.test(text) && !/[一-龥]/.test(text);
+  }
+
+  /* 只把注音空掉。『注音』或「純注音」變成空格；句子本身留著，不把整句讀成空格。 */
   function cardSay(text) {
-    return String(text == null ? '' : text).replace(/「[^」]*」/g, '「空格」');
+    let s = String(text == null ? '' : text);
+    if (s.indexOf('『') >= 0) s = s.replace(/『[^』]*』/g, '空格');
+    return s.replace(/「([^」]*)」/g, (full, inner) => (isBopomofo(inner) ? '「空格」' : full));
   }
 
   /* 朗讀只用題幹。讀音題回傳空字串，呼叫端就不發聲。 */
@@ -97,12 +104,16 @@
     laterIds.push(id);
     return id;
   }
+  function clearToast() {
+    clearTimeout(toastTimer);
+    const toastEl = $('toast');
+    if (toastEl) { toastEl.classList.remove('show'); toastEl.innerHTML = ''; }
+    document.querySelectorAll('.confetti, .big-check').forEach(el => el.remove());
+  }
   function clearLater() {
     laterIds.forEach(clearTimeout);
     laterIds = [];
-    clearTimeout(toastTimer);
-    const toastEl = $('toast');
-    if (toastEl) toastEl.classList.remove('show');
+    clearToast();
     document.querySelectorAll('.confetti, .big-check').forEach(el => el.remove());
   }
   function toast(html, ms) {
@@ -419,7 +430,7 @@
     show('play');
     placeScreen({ unit: curUnit && curUnit.id, play: true });
     game = { level: level, tally: S.createTally(), over: false, practice: practice, replay: replay, items: S.countItems(level), startedAt: Date.now(), question: null, quiet: false };
-    $('lvTitle').textContent = level.icon + ' ' + level.name;
+    $('lvTitle').textContent = level.name;
     $('lvKind').textContent = KIND[level.kind][0];
     $('lvKind').className = 'chip ' + KIND[level.kind][1];
     $('lvProg').textContent = '';
@@ -593,7 +604,7 @@
   }
 
   function nextBtn(i, n) {
-    return '<div class="next-row" style="margin-top:10px"><button type="button" class="px-btn orange" id="nextQ">' + (i + 1 < n ? '下一題 ▶' : '完成 🏁') + '</button></div>';
+    return '<div class="next-row"><button type="button" class="px-btn orange" id="nextQ">' + (i + 1 < n ? '下一題 ▶' : '完成 🏁') + '</button></div>';
   }
   function explainHtml(q, yours, correct) {
     let html = '<div class="explain">💡 ' + formatRich(q.why || '答對了！');
@@ -603,7 +614,52 @@
     return html + '</div>';
   }
   function bindNext(next) {
-    $('nextQ').addEventListener('click', () => { Sound.click(); next(); });
+    const btn = $('nextQ');
+    btn.addEventListener('click', () => { Sound.click(); next(); });
+    requestAnimationFrame(() => { try { btn.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (err) {} });
+  }
+  function gridSVG(fig) {
+    const cell = 48;
+    const pad = 22;
+    const rows = fig.rows;
+    const cols = fig.cols;
+    const w = cols * cell + pad * 2;
+    const h = rows * cell + pad * 2;
+    const paint = {};
+    (fig.paint || []).forEach(p => { paint[p[0] + ',' + p[1]] = true; });
+    let svg = '<svg class="gridfig" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + attr(fig.alt || '方格紙') + '">';
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = pad + c * cell;
+        const y = pad + r * cell;
+        svg += '<rect x="' + (x + 2) + '" y="' + (y + 2) + '" width="' + (cell - 4) + '" height="' + (cell - 4) + '" class="cell' + (paint[r + ',' + c] ? ' on' : '') + '"/>';
+      }
+    }
+    if (fig.axis === 'h') {
+      const y = pad + fig.ay * cell;
+      svg += '<line x1="' + (pad - 8) + '" y1="' + y + '" x2="' + (pad + cols * cell + 8) + '" y2="' + y + '" class="axis"/>';
+    } else {
+      const x = pad + fig.ax * cell;
+      svg += '<line x1="' + x + '" y1="' + (pad - 8) + '" x2="' + x + '" y2="' + (pad + rows * cell + 8) + '" class="axis"/>';
+    }
+    (fig.segs || []).forEach(s => {
+      const x1 = pad + s[1] * cell + cell / 2;
+      const y1 = pad + s[0] * cell + cell / 2;
+      const x2 = pad + s[3] * cell + cell / 2;
+      const y2 = pad + s[2] * cell + cell / 2;
+      svg += '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" class="seg"/>';
+    });
+    (fig.dots || []).forEach(d => {
+      const cx = pad + d[1] * cell + cell / 2;
+      const cy = pad + d[0] * cell + cell / 2;
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="9" class="dot"/>';
+      if (d[2]) svg += '<text x="' + cx + '" y="' + (cy - 14) + '" class="dotlab">' + esc(d[2]) + '</text>';
+    });
+    return svg + '</svg>';
+  }
+  function figBlock(q) {
+    if (!q || !q.fig) return '';
+    return '<div class="figwrap">' + gridSVG(q.fig) + '</div>';
   }
   function sameList(got, tokens) {
     if (!got || got.length !== tokens.length) return false;
@@ -621,6 +677,7 @@
     const say = $('sayBtn');
     say.hidden = !!q.noTTS;
     say.disabled = !!q.noTTS;
+    clearToast();
     setProg(index + 1, total);
     setAsk(q);
     $('stage').dataset.qid = q.id;
@@ -632,9 +689,8 @@
   }
   function renderChoice(q, next, index, total) {
     const opts = S.choiceDeck(q.opts);
-    const short = opts.every(o => Array.from(String(o.t)).length <= 8);
     let locked = false;
-    $('stage').innerHTML = '<div class="panel px"><div class="opts">' + opts.map((o, i) => '<button type="button" class="px-btn opt' + (short ? ' opt-short' : '') + '" data-i="' + i + '" data-plain="' + attr(o.t) + '">' + (short ? '' : 'ABCD'[i] + '. ') + formatRich(o.t) + '</button>').join('') + '</div><div id="why"></div></div>';
+    $('stage').innerHTML = figBlock(q) + '<div class="panel px"><div class="opts">' + opts.map((o, i) => '<button type="button" class="px-btn opt" data-i="' + i + '" data-plain="' + attr(o.t) + '">' + 'ABCD'[i] + '. ' + formatRich(o.t) + '</button>').join('') + '</div><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
     $('stage').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
@@ -649,14 +705,14 @@
         if (choice.right) x.classList.add('right');
         else if (x === b && !choice.right) { x.classList.add('wrong'); restartAnim(x, 'shake'); }
       });
-      $('why').innerHTML = explainHtml(q, null, '') + nextBtn(index, total);
+      $('why').innerHTML = nextBtn(index, total) + explainHtml(q, null, '');
       bindNext(next);
     }));
   }
   function renderCard(q, next, index, total) {
     const opts = S.choiceDeck(q.opts);
     let locked = false;
-    $('stage').innerHTML = '<div class="panel px"><div class="char-grid">' + opts.map((o, i) => '<button type="button" class="px-btn opt opt-char" data-i="' + i + '" data-plain="' + attr(o.t) + '">' + formatRich(o.t) + '</button>').join('') + '</div><div id="why"></div></div>';
+    $('stage').innerHTML = figBlock(q) + '<div class="panel px"><div class="char-grid">' + opts.map((o, i) => '<button type="button" class="px-btn opt opt-char" data-i="' + i + '" data-plain="' + attr(o.t) + '">' + formatRich(o.t) + '</button>').join('') + '</div><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
     $('stage').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
@@ -671,7 +727,7 @@
         if (choice.right) x.classList.add('right');
         else if (x === b && !choice.right) { x.classList.add('wrong'); restartAnim(x, 'shake'); }
       });
-      $('why').innerHTML = explainHtml(q, null, '') + nextBtn(index, total);
+      $('why').innerHTML = nextBtn(index, total) + explainHtml(q, null, '');
       bindNext(next);
     }));
   }
@@ -679,7 +735,7 @@
     let buf = '';
     let locked = false;
     const unit = q.unit ? '<span class="key-unit">' + esc(q.unit) + '</span>' : '';
-    $('stage').innerHTML = '<div class="panel px keypad-wrap"><div class="key-screen" id="keyScreen" aria-live="polite"><span id="keyValue"></span>' + unit + '</div><p class="key-hint">輸入數字就好。分數用／，帶分數用又。</p><div class="keypad">' + KEYS.map(item => '<button type="button" class="px-btn key' + (item.wide ? ' wide' : '') + '" data-k="' + attr(item.k) + '">' + item.t + '</button>').join('') + '</div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>';
+    $('stage').innerHTML = figBlock(q) + '<div class="panel px keypad-wrap"><div class="key-screen" id="keyScreen" aria-live="polite"><span id="keyValue"></span>' + unit + '</div><p class="key-hint">輸入數字就好。分數用／，帶分數用又。</p><div class="keypad">' + KEYS.map(item => '<button type="button" class="px-btn key' + (item.wide ? ' wide' : '') + '" data-k="' + attr(item.k) + '">' + item.t + '</button>').join('') + '</div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
     const paint = () => {
@@ -701,7 +757,7 @@
       $('checkBtn').disabled = true;
       if (ok) { goodItem(q.id); bigCheck(); }
       else missItem(q.id, '數字還不對，這顆星拿不到。', { q: q.q, a: buf || '（空白）', c: q.a });
-      $('why').innerHTML = explainHtml(q, buf, q.a) + nextBtn(index, total);
+      $('why').innerHTML = nextBtn(index, total) + explainHtml(q, buf, q.a);
       bindNext(next);
     });
   }
@@ -718,7 +774,7 @@
   }
   function renderArrange(q, next, index, total) {
     const hint = q.mode === 'order' ? '點卡片排上去，或拖過去。排好再按檢查。' : '點詞卡排成一句，或拖過去。排好再按檢查。';
-    $('stage').innerHTML = '<div class="panel px"><p class="arrange-hint">' + hint + '</p><div id="tiles"></div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>';
+    $('stage').innerHTML = figBlock(q) + '<div class="panel px"><p class="arrange-hint">' + hint + '</p><div id="tiles"></div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
     const box = mountTiles($('tiles'), q.tokens);
@@ -734,7 +790,7 @@
       $('checkBtn').disabled = true;
       if (ok) { goodItem(q.id); bigCheck(); }
       else missItem(q.id, '順序還不對，這顆星拿不到。', { q: q.q, a: yours || '（空白）', c: correct });
-      $('why').innerHTML = explainHtml(q, yours, correct) + nextBtn(index, total);
+      $('why').innerHTML = nextBtn(index, total) + explainHtml(q, yours, correct);
       bindNext(next);
     });
   }
@@ -861,10 +917,19 @@
     if (!S) throw new Error('找不到 unit-score');
     if (!unitList().length) throw new Error('這個章節沒有小單元');
     CFG = cfg;
-    $('homeBtn').addEventListener('click', () => {
+    $('homeBtn').addEventListener('click', async () => {
       Sound.click();
-      if ($('play').classList.contains('active') && curUnit) openUnit(curUnit);
-      else renderLobby();
+      if ($('play').classList.contains('active') && curUnit) {
+        if (game && !game.over) {
+          const ok = await showModal({
+            icon: '🚪', title: '離開這一關？', center: true,
+            html: '這關還沒玩完，要離開嗎？',
+            buttons: [{ label: '離開', value: true, cls: 'orange' }, { label: '繼續玩', value: false, cls: 'stone' }]
+          });
+          if (!ok) return;
+        }
+        openUnit(curUnit);
+      } else renderLobby();
     });
     const unitBackBtn = $('unitBackBtn');
     if (unitBackBtn) unitBackBtn.addEventListener('click', () => { Sound.click(); renderLobby(); });
