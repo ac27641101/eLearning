@@ -528,11 +528,22 @@
     return '還沒有每關紀錄';
   }
 
+  /* 上次 ★ 只讀完整跑完那一次寫下的 lastRunStars / lastRunMax。
+     舊紀錄只有 stars、max（沒玩完也寫進去）時，不當成上次。 */
+  function finishedRunMark(levelReview) {
+    if (!levelReview) return null;
+    if (typeof levelReview.lastRunStars !== 'number' || !isFinite(levelReview.lastRunStars)) return null;
+    if (typeof levelReview.lastRunMax !== 'number' || !isFinite(levelReview.lastRunMax) || levelReview.lastRunMax <= 0) return null;
+    return {
+      lastRunStars: Math.max(0, Math.min(30, Math.round(levelReview.lastRunStars))),
+      lastRunMax: Math.max(0, Math.min(30, Math.round(levelReview.lastRunMax)))
+    };
+  }
+
   function lastRunText(levelReview) {
-    if (!levelReview || typeof levelReview.max !== 'number' || !isFinite(levelReview.max) || levelReview.max <= 0) return '';
-    if (typeof levelReview.stars !== 'number' || !isFinite(levelReview.stars)) return '';
-    const stars = Math.max(0, Math.round(levelReview.stars));
-    return '上次 ★ ' + stars + ' / ' + Math.max(0, Math.round(levelReview.max));
+    const mark = finishedRunMark(levelReview);
+    if (!mark) return '';
+    return '上次 ★ ' + mark.lastRunStars + ' / ' + mark.lastRunMax;
   }
 
   let reviewShadow = {};
@@ -566,12 +577,18 @@
     }
     const stars = raw && typeof raw.stars === 'number' && isFinite(raw.stars) ? Math.max(0, Math.min(30, Math.round(raw.stars))) : 0;
     const max = raw && typeof raw.max === 'number' && isFinite(raw.max) ? Math.max(0, Math.min(30, Math.round(raw.max))) : 0;
-    return {
+    const level = {
       stars: stars,
       max: max,
       wrong: wrong,
       at: raw && typeof raw.at === 'string' ? raw.at.slice(0, 40) : ''
     };
+    const mark = finishedRunMark(raw);
+    if (mark) {
+      level.lastRunStars = mark.lastRunStars;
+      level.lastRunMax = mark.lastRunMax;
+    }
+    return level;
   }
 
   function normalizeReview(raw) {
@@ -639,9 +656,21 @@
     const levelId = record.levelId;
     const prev = next.levels[levelId];
     const incoming = normalizeReviewLevel(record);
+    delete incoming.lastRunStars;
+    delete incoming.lastRunMax;
     if (record.commitStars === false) {
       incoming.stars = prev ? prev.stars : 0;
       incoming.max = prev ? prev.max : 0;
+    }
+    if (record && record.commitStars === true && incoming.max > 0) {
+      incoming.lastRunStars = incoming.stars;
+      incoming.lastRunMax = incoming.max;
+    } else {
+      const kept = finishedRunMark(prev);
+      if (kept) {
+        incoming.lastRunStars = kept.lastRunStars;
+        incoming.lastRunMax = kept.lastRunMax;
+      }
     }
     if (record.keepWrong && prev) incoming.wrong = prev.wrong || [];
     next.levels[levelId] = incoming;

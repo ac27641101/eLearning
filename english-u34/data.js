@@ -147,9 +147,9 @@
             spell('u3l4-1', '去慢跑的那個字。', '🏃', 'jogging', ['e', 'a', 'u'], 'go jogging。jogging 有兩個 g，不要漏。〔課 p.44〕'),
             spell('u3l4-2', '打籃球的那個字。', '🏀', 'basketball', ['i', 'o', 'r'], 'play basketball。中間有 ket，有兩個 l。〔課 p.44〕'),
             spell('u3l4-3', '上網的那個字。字首要大寫。', '💻', 'Internet', ['a', 'o', 'i'], 'surf the Internet。字首 I 要大寫，中間有兩個 e。〔課 p.44〕'),
-            sentence('u3l4-4', '把字卡排成問句。', 'What do you do in your free time?', ['What', 'do', 'you', 'do', 'in', 'your', 'free', 'time', '?'], ['does', 'is'], null, 'What do you do in your free time?〔課 p.44〕'),
-            sentence('u3l4-5', '把字卡排成一句話。', 'She watches TV in her free time.', ['She', 'watches', 'TV', 'in', 'her', 'free', 'time', '.'], ['watch', 'does', 'is'], null, 'She watches TV in her free time.〔課 p.44〕'),
-            sentence('u3l4-6', '用完整的句子回答。', 'Does Mozart write music in his free time?', ['Yes,', 'he', 'does', '.'], ['is', 'do', "doesn't"], null, 'He writes music in his free time. 所以是 Yes, he does.〔課 p.42、習 p.24〕')
+            sentence('u3l4-4', '把字卡排成問句。', '你空閒的時候會做什麼？', ['What', 'do', 'you', 'do', 'in', 'your', 'free', 'time', '?'], ['does', 'is'], null, 'What do you do in your free time?〔課 p.44〕'),
+            sentence('u3l4-5', '把字卡排成一句話。', '她空閒時會看電視。', ['She', 'watches', 'TV', 'in', 'her', 'free', 'time', '.'], ['watch', 'does', 'is'], null, 'She watches TV in her free time.〔課 p.44〕'),
+            sentence('u3l4-6', '用完整的句子回答。', 'Mozart 空閒時會寫曲子嗎？', ['Yes,', 'he', 'does', '.'], ['is', 'do', "doesn't"], null, 'He writes music in his free time. 所以是 Yes, he does.〔課 p.42、習 p.24〕')
           ],
           recap: '拼的時候看中間有沒有漏字母。問句的第一個字要大寫，最後要有 ? 或 .。'
         }
@@ -232,28 +232,28 @@
           name: 'Jim 和 Eva',
           questions: [
             {
-              id: 'u4l4-1', q: '選出正確的答案。', stem: 'What time does Eva get up?',
+              id: 'u4l4-1', factKey: 'u4l4-1', q: '選出正確的答案。', stem: 'What time does Eva get up?',
               opts: ['She gets up at seven twenty.', 'She gets up at six thirty.', 'She gets up at seven thirty.'],
               passage: JIM,
               why: 'Eva gets up at seven twenty. Jim 才是 six thirty。〔習 p.30〕'
             },
             {
-              id: 'u4l4-2', q: '這句對不對？', stem: 'Jim gets up at six thirty.',
-              opts: ['T（對）', 'F（不對）'], passage: JIM,
+              id: 'u4l4-2', factKey: 'u4l4-2', q: '這句對不對？', stem: 'Jim gets up at six thirty.',
+              opts: ['T', 'F'], passage: JIM,
               why: 'He gets up at six thirty. 這句是對的。〔習 p.30〕'
             },
             {
-              id: 'u4l4-3', q: '這句對不對？', stem: 'Eva gets up at six thirty.',
-              opts: ['F（不對）', 'T（對）'], passage: JIM,
+              id: 'u4l4-3', factKey: 'u4l4-3', q: '這句對不對？', stem: 'Eva gets up at six thirty.',
+              opts: ['F', 'T'], passage: JIM,
               why: 'six thirty 是 Jim。Eva gets up at seven twenty。〔習 p.30〕'
             },
             {
-              id: 'u4l4-4', q: '這句對不對？看清楚是 baseball 還是 basketball。', stem: 'Jim plays baseball at five.',
-              opts: ['F（不對）', 'T（對）'], passage: JIM,
+              id: 'u4l4-4', factKey: 'u4l4-4', q: '這句對不對？看清楚是 baseball 還是 basketball。', stem: 'Jim plays baseball at five.',
+              opts: ['F', 'T'], passage: JIM,
               why: 'He plays basketball at five. 不是 baseball。〔習 p.30〕'
             },
-            sentence('u4l4-5', '用完整的句子回答。', 'What time does Eva get up?', ['She', 'gets', 'up', 'at', 'seven', 'twenty', '.'], ['does', 'get', 'is'], null, 'She gets up at seven twenty.〔習 p.30〕', JIM),
-            sentence('u4l4-6', '用完整的句子回答。', 'What time does Eva take a shower?', ['She', 'takes', 'a', 'shower', 'at', 'four', 'thirty', '.'], ['take', 'does', 'is'], [['Eva', 'takes', 'a', 'shower', 'at', 'four', 'thirty', '.']], 'Eva takes a shower at four thirty. 也可以說 She takes a shower at four thirty.〔習 p.30〕', JIM)
+            sentence('u4l4-5', '用完整的句子回答。', 'Jim 和 Eva 幾點上床睡覺？', ['They', 'go', 'to', 'bed', 'at', 'nine', 'thirty', '.'], ['does', 'get', 'is'], null, 'At nine thirty, Jim and Eva go to bed.', JIM),
+            sentence('u4l4-6', '用完整的句子回答。', 'Eva 幾點洗澡？', ['She', 'takes', 'a', 'shower', 'at', 'four', 'thirty', '.'], ['take', 'does', 'is'], [['Eva', 'takes', 'a', 'shower', 'at', 'four', 'thirty', '.']], 'Eva takes a shower at four thirty. 也可以說 She takes a shower at four thirty.〔習 p.30〕', JIM)
           ],
           recap: 'Jim 6:30 起床，Eva 7:20 起床。Eva 4:30 洗澡。Jim 五點打的是 basketball。'
         }
@@ -329,12 +329,12 @@
           icon: '📝',
           name: '完整句王',
           questions: [
-            sentence('wk4-1', '用完整的句子回答。否定之後，補上他真正做的事。', 'Does Lucas go jogging in his free time?', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV 那一列。No, he doesn\'t. He watches TV.〔習 p.24〕', CHART, true),
-            sentence('wk4-2', '用完整的句子回答。', 'Does Bella play baseball in her free time?', ['Yes,', 'she', 'does', '.'], ['is', 'do', "doesn't"], null, 'Bella 在 play baseball 那一列。Yes, she does.〔習 p.24〕', CHART, true),
-            sentence('wk4-3', '用完整的句子回答。要有 years old。', 'Is Roy ten years old?', ['No,', 'he', "isn't", '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['does', "He's", 'ten'], [['No,', 'he', 'is', 'not', '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['No,', 'he', "isn't", '.', "He's", 'twelve', 'years', 'old', '.']], 'Roy is twelve years old. 要寫 years，不能只寫 twelve old。〔課 p.50〕', null, true),
-            sentence('wk4-4', '用完整的句子回答。', 'What time does Eva get up?', ['She', 'gets', 'up', 'at', 'seven', 'twenty', '.'], ['does', 'get', 'is'], null, 'She gets up at seven twenty.〔習 p.30〕', JIM),
-            sentence('wk4-5', '用完整的句子回答。', 'What time does Jim get up?', ['He', 'gets', 'up', 'at', 'six', 'thirty', '.'], ['does', 'seven', 'is'], null, 'He gets up at six thirty.〔習 p.30〕', JIM),
-            sentence('wk4-6', '用完整的句子回答。', 'What does Tina do in her free time?', ['She', 'watches', 'TV', 'in', 'her', 'free', 'time', '.'], ['watch', 'does', 'is'], null, 'She watches TV in her free time.〔課 p.44〕')
+            sentence('wk4-1', '用完整的句子回答。否定之後，補上他真正做的事。', '看上面的圖表。Lucas 空閒時會去慢跑嗎？如果不會，用完整的句子寫出他真正做的活動。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV 那一列。No, he doesn\'t. He watches TV.〔習 p.24〕', CHART, true),
+            sentence('wk4-2', '用完整的句子回答。', '看上面的圖表。Bella 空閒時會打棒球嗎？', ['Yes,', 'she', 'does', '.'], ['is', 'do', "doesn't"], null, 'Bella 在 play baseball 那一列。Yes, she does.〔習 p.24〕', CHART, true),
+            sentence('wk4-3', '用完整的句子回答。要有 years old。', 'Roy 是十歲嗎？回答要有 years old。', ['No,', 'he', "isn't", '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['does', "He's", 'ten'], [['No,', 'he', 'is', 'not', '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['No,', 'he', "isn't", '.', "He's", 'twelve', 'years', 'old', '.']], 'Roy is twelve years old. 要寫 years，不能只寫 twelve old。〔課 p.50〕', null, true),
+            sentence('wk4-4', '用完整的句子回答。', 'Eva 幾點起床？', ['She', 'gets', 'up', 'at', 'seven', 'twenty', '.'], ['does', 'get', 'is'], null, 'She gets up at seven twenty.〔習 p.30〕', JIM),
+            sentence('wk4-5', '用完整的句子回答。', 'Jim 幾點起床？', ['He', 'gets', 'up', 'at', 'six', 'thirty', '.'], ['does', 'seven', 'is'], null, 'He gets up at six thirty.〔習 p.30〕', JIM),
+            sentence('wk4-6', '用完整的句子回答。', 'Tina 空閒時會做什麼？', ['She', 'watches', 'TV', 'in', 'her', 'free', 'time', '.'], ['watch', 'does', 'is'], null, 'She watches TV in her free time.〔課 p.44〕')
           ],
           recap: 'Does…? 要用 Yes, he does. 或 No, he doesn\'t. 題目要你補第二句時，第二句也要寫完。年齡要寫 years old。'
         }
@@ -388,8 +388,8 @@
             examChoice('E2', 'E', 3, '2. He ___ an ice bath in his free time.', ['takes', 'take', 'taking'], 'He takes an ice bath.〔課 p.56〕'),
             examChoice('E3', 'E', 2, '3. I get up ___ six thirty.', ['at', 'on', 'in'], 'I get up at six thirty. 時間前面用 at。〔課 p.58〕'),
             examChoice('E4', 'E', 2, '4. I play baseball ___ weekends.', ['on', 'in', 'at'], 'I play baseball on weekends.〔課 p.42〕'),
-            examSentence('F1', 'F', 5, '1. 重組句子。注意第一個字的大寫和問號。', ['What', 'does', 'Tina', 'do', 'in', 'her', 'free', 'time', '?'], ['is'], null, 'What does Tina do in her free time?〔課 p.44〕'),
-            examSentence('F2', 'F', 4, '2. 重組句子。注意第一個字的大寫和問號。', ['What', 'time', 'do', 'you', 'get', 'up', '?'], ['does', 'goes'], null, 'What time do you get up?〔課 p.58〕')
+            examSentence('F1', 'F', 5, '1. 重組句子。Tina 空閒時會做什麼？注意第一個字的大寫和問號。', ['What', 'does', 'Tina', 'do', 'in', 'her', 'free', 'time', '?'], ['is'], null, 'What does Tina do in her free time?〔課 p.44〕'),
+            examSentence('F2', 'F', 4, '2. 重組句子。你幾點起床？注意第一個字的大寫和問號。', ['What', 'time', 'do', 'you', 'get', 'up', '?'], ['does', 'goes'], null, 'What time do you get up?〔課 p.58〕')
           ],
           recap: '拼字看中間和字尾。選擇題看 do/does、at、on weekends。重組要有大寫和標點。'
         },
@@ -407,8 +407,8 @@
             examChoice('G2', 'G', 2, '2. play baseball 是哪一個代號？', ['G', 'B', 'C'], 'G 是 play baseball。B 是 play basketball，不要看錯。', true),
             examTf('G3', 'G', 3, '3. Bella plays basketball.', false, 'Bella 打的是 baseball，所以這句不對。〔習 p.24〕', true),
             examTf('G4', 'G', 3, '4. There are 21 people in the chart.', false, '3+6+4+1+2+1+5=22，不是 21。每一列都要加。〔習 p.24〕', true),
-            examSentence('G5', 'G', 5, '5. Does Lucas go jogging in his free time? 用完整的句子回答，並補上他真正做的事。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV。No, he doesn\'t. He watches TV.〔習 p.24〕', true),
-            examSentence('G6', 'G', 5, '6. What does Connie do in her free time? 用完整的句子回答。', ['She', 'rides', 'a', 'bike', 'in', 'her', 'free', 'time', '.'], ['ride', 'does', 'is'], null, 'Connie 在 ride a bike。She rides a bike in her free time.〔習 p.24〕', true)
+            examSentence('G5', 'G', 5, '5. 看上面的圖表。Lucas 空閒時會去慢跑嗎？如果不會，用完整的句子寫出他真正做的活動。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV。No, he doesn\'t. He watches TV.〔習 p.24〕', true),
+            examSentence('G6', 'G', 5, '6. 看上面的圖表。Connie 空閒時會做什麼？用完整的句子回答。', ['She', 'rides', 'a', 'bike', 'in', 'her', 'free', 'time', '.'], ['ride', 'does', 'is'], null, 'Connie 在 ride a bike。She rides a bike in her free time.〔習 p.24〕', true)
           ],
           recap: '看名字在哪一列。basketball 和 baseball 不一樣。人數要把每一列加總。'
         },
@@ -426,9 +426,9 @@
             { who: 'Eva', icon: '🚿', h: 4, m: 30, cap: 'shower' }
           ],
           questions: [
-            examForm('H1', 5, '1. What time ( do / does ) Joy get up?', ['does', 'do'], ['She', 'gets', 'up', 'at', 'eight', "o'clock", '.'], ['get', 'do', 'is'], null, 'What time does Joy get up? She gets up at eight o\'clock.〔課 p.54〕', true),
-            examForm('H2', 4, '2. Does Jim ( play / plays ) basketball at five?', ['play', 'plays'], ['Yes,', 'he', 'does', '.'], ['is', 'plays', 'No,'], null, 'Does 後面用原形 play。Yes, he does. He plays basketball at five.〔習 p.30〕'),
-            examForm('H3', 4, '3. Jim is ( plays / playing ) basketball.', ['playing', 'plays'], ['He', 'is', 'playing', 'basketball', '.'], ['plays', 'does', "He's"], [['He\'s', 'playing', 'basketball', '.']], '有 is，要用 playing。He is playing basketball. 這句是和 plays 對比的加強題。', true)
+            examForm('H1', 5, '1. Joy 幾點起床？先選 do 或 does，再用字卡排成她的回答。', ['does', 'do'], ['She', 'gets', 'up', 'at', 'eight', "o'clock", '.'], ['get', 'do', 'is'], null, 'What time does Joy get up? She gets up at eight o\'clock.〔課 p.54〕', true),
+            examForm('H2', 4, '2. Jim 五點會打籃球嗎？先選 play 或 plays，再用字卡排成回答。', ['play', 'plays'], ['Yes,', 'he', 'does', '.'], ['is', 'plays', 'No,'], null, 'Does 後面用原形 play。Yes, he does. He plays basketball at five.〔習 p.30〕'),
+            examForm('H3', 4, '3. Jim 正在打籃球。先選 plays 或 playing，再用字卡排成句子。', ['playing', 'plays'], ['He', 'is', 'playing', 'basketball', '.'], ['plays', 'does', "He's"], [['He\'s', 'playing', 'basketball', '.']], '有 is，要用 playing。He is playing basketball. 這句是和 plays 對比的加強題。', true)
           ],
           recap: 'What time does…? Does 後面用原形。有 is 就用 -ing。完整句要有句號。'
         }
@@ -437,37 +437,37 @@
   ];
 
   function q(id, ask, stem, opts, why, infer) {
-    return { id: id, q: ask, stem: stem, opts: opts, why: why, infer: !!infer };
+    return { id: id, factKey: id, q: ask, stem: stem, opts: opts, why: why, infer: !!infer };
   }
   function listen(id, ask, stem, say, opts, why) {
-    return { id: id, mode: 'listen', q: ask, stem: stem, say: say, opts: opts, why: why };
+    return { id: id, factKey: id, mode: 'listen', q: ask, stem: stem, say: say, opts: opts, why: why };
   }
   function pic(id, say, opts, why) {
-    return { id: id, mode: 'listen', q: '聽句子，點出對的圖。', say: say, opts: opts, why: why, big: true };
+    return { id: id, factKey: id, mode: 'listen', q: '聽句子，點出對的圖。', say: say, opts: opts, why: why, big: true };
   }
   function clockQ(id, say, clocks, why) {
-    return { id: id, mode: 'listen', q: '聽時間，點出時鐘。', say: say, clocks: clocks, why: why };
+    return { id: id, factKey: id, mode: 'listen', q: '聽時間，點出時鐘。', say: say, clocks: clocks, why: why };
   }
   function spell(id, ask, art, answer, extra, why) {
-    return { id: id, mode: 'spell', q: '看提示，用字母卡拼出單字。', stem: ask, art: art, answer: answer, extra: extra, why: why };
+    return { id: id, factKey: id, mode: 'spell', q: '看提示，用字母卡拼出單字。', stem: ask, art: art, answer: answer, extra: extra, why: why };
   }
   function sentence(id, ask, stem, tokens, extra, also, why, passage, infer) {
     var accept = [tokens].concat(also || []);
-    return { id: id, mode: 'sentence', q: ask, stem: stem, tokens: tokens, extra: extra, accept: accept, why: why, passage: passage || '', infer: !!infer };
+    return { id: id, factKey: id, mode: 'sentence', q: ask, stem: stem, tokens: tokens, extra: extra, accept: accept, why: why, passage: passage || '', infer: !!infer };
   }
   function tf(id, ask, stem, yes, why, passage, infer) {
     return {
-      id: id, q: ask, stem: stem, passage: passage || '',
-      opts: yes ? ['T（對）', 'F（不對）'] : ['F（不對）', 'T（對）'],
+      id: id, factKey: id, q: ask, stem: stem, passage: passage || '',
+      opts: yes ? ['T', 'F'] : ['F', 'T'],
       why: why, infer: !!infer
     };
   }
   function examListen(id, part, points, prompt, say, opts, why) {
-    return { id: id, part: part, points: points, mode: 'listen', prompt: prompt, stem: prompt, say: say, opts: opts, why: why, q: prompt };
+    return { id: id, factKey: id, part: part, points: points, mode: 'listen', prompt: prompt, stem: prompt, say: say, opts: opts, why: why, q: prompt };
   }
   function cloze(id, slot, answer, why) {
     return {
-      id: id, part: 'B', points: 3, mode: 'cloze', group: 'passageB', slot: slot, answer: answer, why: why,
+      id: id, factKey: id, part: 'B', points: 3, mode: 'cloze', group: 'passageB', slot: slot, answer: answer, why: why,
       prompt: '短文第 ' + (slot + 1) + ' 格',
       say: "The boy has some soybeans and coins. He puts them in his toy. Oh, no! It makes a big noise! Shout out! Shout out to the clown now! Look how he bounces around the crowd.",
       passage: 'The ___ has some soybeans and coins. He puts them in his ___. Shout out to the ___ now! Look how he bounces around the ___.',
@@ -476,32 +476,32 @@
   }
   function numPic(id, n, art, label, why) {
     return {
-      id: id, part: 'C', points: 3, mode: 'number', group: 'picsC', answer: n, art: art, label: label, why: why,
+      id: id, factKey: id, part: 'C', points: 3, mode: 'number', group: 'picsC', answer: n, art: art, label: label, why: why,
       prompt: label,
       say: "Number one. He gets up at six thirty. Number two. They go to school at seven thirty. Number three. They have lunch together at twelve o'clock. Number four. At nine thirty, Jim and Eva go to bed."
     };
   }
   function examSpell(id, part, points, prompt, art, answer, extra, why, infer) {
-    return { id: id, part: part, points: points, mode: 'spell', prompt: prompt, stem: prompt, art: art, answer: answer, extra: extra, why: why, infer: !!infer, q: prompt };
+    return { id: id, factKey: id, part: part, points: points, mode: 'spell', prompt: prompt, stem: prompt, art: art, answer: answer, extra: extra, why: why, infer: !!infer, q: prompt };
   }
   function examChoice(id, part, points, stem, opts, why, infer) {
-    return { id: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, opts: opts, why: why, infer: !!infer, q: stem };
+    return { id: id, factKey: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, opts: opts, why: why, infer: !!infer, q: stem };
   }
   function examTf(id, part, points, stem, yes, why, infer) {
     return {
-      id: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, infer: !!infer, why: why, q: stem,
-      opts: yes ? ['T（對）', 'F（不對）'] : ['F（不對）', 'T（對）']
+      id: id, factKey: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, infer: !!infer, why: why, q: stem,
+      opts: yes ? ['T', 'F'] : ['F', 'T']
     };
   }
   function examSentence(id, part, points, prompt, tokens, extra, also, why, infer) {
     return {
-      id: id, part: part, points: points, mode: 'sentence', prompt: prompt, stem: prompt, q: prompt,
+      id: id, factKey: id, part: part, points: points, mode: 'sentence', prompt: prompt, stem: prompt, q: prompt,
       tokens: tokens, extra: extra, accept: [tokens].concat(also || []), why: why, infer: !!infer
     };
   }
   function examForm(id, points, stem, choices, tokens, extra, also, why, infer) {
     return {
-      id: id, part: 'H', points: points, mode: 'form', prompt: stem, stem: stem, q: stem,
+      id: id, factKey: id, part: 'H', points: points, mode: 'form', prompt: stem, stem: stem, q: stem,
       choices: choices, tokens: tokens, extra: extra, accept: [tokens].concat(also || []),
       why: why, infer: !!infer
     };
