@@ -436,6 +436,7 @@
   }
 
   root.ELSignOut = function () {
+    if (!window.confirm('確定要登出嗎？')) return;
     reloading = true;
     var done = auth && authMod ? authMod.signOut(auth) : Promise.resolve();
     Promise.resolve(done).then(function () { location.reload(); }, function () { location.reload(); });

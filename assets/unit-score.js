@@ -697,15 +697,53 @@
     return normalizeReview(base);
   }
 
-  function reviewBodyHtml(levelReview) {
+  function reviewBodyHtml(levelReview, opts) {
     const wrong = (levelReview && levelReview.wrong) || [];
-    let html = '<p class="wrong-head"><b>' + (wrong.length ? ('上次這關錯了 ' + wrong.length + ' 題') : '上次全對！') + '</b></p>';
+    const current = !!(opts && opts.current);
+    const head = wrong.length
+      ? ((current ? '這次這關錯了 ' : '上次這關錯了 ') + wrong.length + ' 題')
+      : (current ? '這次全對！' : '上次全對！');
+    let html = '<p class="wrong-head"><b>' + head + '</b></p>';
     wrong.forEach(item => {
-      html += '<div class="wrong-item"><p>題目：' + escapeHtml(item.q) + '</p>'
+      const q = spellClue(item.q);
+      html += '<div class="wrong-item"><p>題目：' + escapeHtml(q) + '</p>'
         + '<p class="ans-bad">你的答案：' + escapeHtml(item.a || '（空白）') + '</p>'
         + '<p class="ans-good">正確答案：' + escapeHtml(item.c) + '</p></div>';
     });
     return html;
+  }
+
+  function spellClue(text) {
+    const raw = String(text || '');
+    if (raw === '看提示，用字母卡拼出單字。') return '這題的提示沒有另外記下來。';
+    return raw;
+  }
+
+  function showGlyph(value) {
+    return String(value == null ? '' : value).replace(/🗓️|📅/g, '🌾');
+  }
+
+  function parseScreenHash(hash) {
+    let raw = String(hash == null ? '' : hash).replace(/^#\/?/, '');
+    const play = /(^|\/)play$/.test(raw);
+    raw = raw.replace(/(^|\/)play$/, '');
+    const parts = raw.split('/').filter(Boolean);
+    const out = { lesson: '', unit: '', play: play };
+    for (let i = 0; i < parts.length - 1; i += 2) {
+      const key = parts[i];
+      const val = decodeURIComponent(parts[i + 1] || '');
+      if (key === 'lesson' || key === 'unit') out[key] = val;
+    }
+    return out;
+  }
+
+  function screenHash(screen) {
+    const s = screen || {};
+    const bits = [];
+    if (s.lesson) bits.push('lesson', encodeURIComponent(s.lesson));
+    if (s.unit) bits.push('unit', encodeURIComponent(s.unit));
+    if (s.play) bits.push('play');
+    return bits.length ? '#/' + bits.join('/') : '#/';
   }
 
   const REWARD_META = [
@@ -801,6 +839,9 @@
     toReviewCloud: toReviewCloud,
     mergeReview: mergeReview,
     reviewBodyHtml: reviewBodyHtml,
+    showGlyph: showGlyph,
+    parseScreenHash: parseScreenHash,
+    screenHash: screenHash,
     REWARD_META: REWARD_META,
     rewardMeta: rewardMeta,
     escapeHtml: escapeHtml,

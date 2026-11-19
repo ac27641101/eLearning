@@ -178,7 +178,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261119a'), unit + ' ' + file);
+      assert.ok(html.includes(file + '?v=20261119b'), unit + ' ' + file);
     });
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -196,7 +196,7 @@ function testCopyAndSubjectLinks() {
     assert.deepStrictEqual(html.match(/href="\.\.\/[^"]*"/g) || [], ['href="' + subjectHash + '"'], unit + ' only the lobby links upward');
     assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science') && !deeper.includes('#/english'), unit + ' deeper screens stay in the unit');
     assert.ok(!deeper.includes('回課程') && !deeper.includes('回科目'), unit + ' deeper labels name the next level up');
-    assert.ok(html.includes('id="resetBtn">🧹 清除星星紀錄</button>\n    <button type="button" class="px-btn wood notes-btn" id="unitBackBtn">⬅ 回單元</button>'), unit);
+    assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>\n    <button class="px-btn wood reset-dock" id="resetBtn">🧹 清除星星紀錄</button>'), unit);
     if (unit === 'social-ch3') {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
       assert.ok(lesson.includes('id="lessonBackBtn">⬅ 回單元</button>'), 'lesson screen');
@@ -231,12 +231,12 @@ function testCopyAndSubjectLinks() {
   assert.ok(hub.includes("location.pathname + location.search + '#/subjects'"));
   assert.ok(hub.includes('showSubjects();'));
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回科目'));
+  assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261119a'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261119b'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261119a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261119b') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +249,7 @@ function testCopyAndSubjectLinks() {
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
   ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261119a'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261119b'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -503,6 +503,15 @@ function testLevelMarkAndReview() {
   assert.ok(html.includes('你的答案'));
   assert.ok(html.includes('正確答案'));
   assert.ok(S.reviewBodyHtml({ stars: 8, max: 8, wrong: [] }).includes('上次全對！'));
+  assert.ok(S.reviewBodyHtml({ stars: 4, max: 8, wrong: [{ q: '題', a: '錯', c: '對' }] }, { current: true }).includes('這次這關錯了 1 題'));
+  assert.ok(S.reviewBodyHtml({ stars: 8, max: 8, wrong: [] }, { current: true }).includes('這次全對！'));
+  assert.strictEqual(S.showGlyph('📅'), '🌾');
+  assert.strictEqual(S.showGlyph('🗓️'), '🌾');
+  assert.deepStrictEqual(S.parseScreenHash('#/lesson/land/unit/sugar/play'), { lesson: 'land', unit: 'sugar', play: true });
+  assert.strictEqual(S.screenHash({ lesson: 'land', unit: 'sugar' }), '#/lesson/land/unit/sugar');
+  assert.deepStrictEqual(S.parseScreenHash(S.screenHash({ lesson: 'land', unit: 'sugar', play: true })), { lesson: 'land', unit: 'sugar', play: true });
+  assert.ok(fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8').includes('q.stem || q.q'));
+  assert.ok(fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8').includes('正確拼法：'));
   const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
   assert.ok(rules.includes('match /reviews/{reviewId}'));
   assert.ok(rules.includes('reviewId == request.resource.data.chapter + \'__\' + request.resource.data.unitId'));
