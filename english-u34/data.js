@@ -329,8 +329,8 @@
           icon: '📝',
           name: '完整句王',
           questions: [
-            sentence('wk4-1', '用完整的句子回答。否定之後，補上他真正做的事。', 'Lucas 空閒時會去慢跑嗎？請用完整的句子回答，並補上他真正做的事。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV 那一列。No, he doesn\'t. He watches TV.〔習 p.24〕', CHART, true),
-            sentence('wk4-2', '用完整的句子回答。', 'Bella 空閒時會打棒球嗎？', ['Yes,', 'she', 'does', '.'], ['is', 'do', "doesn't"], null, 'Bella 在 play baseball 那一列。Yes, she does.〔習 p.24〕', CHART, true),
+            sentence('wk4-1', '用完整的句子回答。否定之後，補上他真正做的事。', '看上面的圖表。Lucas 空閒時會去慢跑嗎？如果不會，用完整的句子寫出他真正做的活動。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV 那一列。No, he doesn\'t. He watches TV.〔習 p.24〕', CHART, true),
+            sentence('wk4-2', '用完整的句子回答。', '看上面的圖表。Bella 空閒時會打棒球嗎？', ['Yes,', 'she', 'does', '.'], ['is', 'do', "doesn't"], null, 'Bella 在 play baseball 那一列。Yes, she does.〔習 p.24〕', CHART, true),
             sentence('wk4-3', '用完整的句子回答。要有 years old。', 'Roy 是十歲嗎？回答要有 years old。', ['No,', 'he', "isn't", '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['does', "He's", 'ten'], [['No,', 'he', 'is', 'not', '.', 'He', 'is', 'twelve', 'years', 'old', '.'], ['No,', 'he', "isn't", '.', "He's", 'twelve', 'years', 'old', '.']], 'Roy is twelve years old. 要寫 years，不能只寫 twelve old。〔課 p.50〕', null, true),
             sentence('wk4-4', '用完整的句子回答。', 'Eva 幾點起床？', ['She', 'gets', 'up', 'at', 'seven', 'twenty', '.'], ['does', 'get', 'is'], null, 'She gets up at seven twenty.〔習 p.30〕', JIM),
             sentence('wk4-5', '用完整的句子回答。', 'Jim 幾點起床？', ['He', 'gets', 'up', 'at', 'six', 'thirty', '.'], ['does', 'seven', 'is'], null, 'He gets up at six thirty.〔習 p.30〕', JIM),
@@ -407,8 +407,8 @@
             examChoice('G2', 'G', 2, '2. play baseball 是哪一個代號？', ['G', 'B', 'C'], 'G 是 play baseball。B 是 play basketball，不要看錯。', true),
             examTf('G3', 'G', 3, '3. Bella plays basketball.', false, 'Bella 打的是 baseball，所以這句不對。〔習 p.24〕', true),
             examTf('G4', 'G', 3, '4. There are 21 people in the chart.', false, '3+6+4+1+2+1+5=22，不是 21。每一列都要加。〔習 p.24〕', true),
-            examSentence('G5', 'G', 5, '5. Lucas 空閒時會去慢跑嗎？用完整的句子回答，並補上他真正做的事。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV。No, he doesn\'t. He watches TV.〔習 p.24〕', true),
-            examSentence('G6', 'G', 5, '6. Connie 空閒時會做什麼？用完整的句子回答。', ['She', 'rides', 'a', 'bike', 'in', 'her', 'free', 'time', '.'], ['ride', 'does', 'is'], null, 'Connie 在 ride a bike。She rides a bike in her free time.〔習 p.24〕', true)
+            examSentence('G5', 'G', 5, '5. 看上面的圖表。Lucas 空閒時會去慢跑嗎？如果不會，用完整的句子寫出他真正做的活動。', ['No,', 'he', "doesn't", '.', 'He', 'watches', 'TV', '.'], ['does', 'not', 'is', 'plays'], [['No,', 'he', 'does', 'not', '.', 'He', 'watches', 'TV', '.']], 'Lucas 在 watch TV。No, he doesn\'t. He watches TV.〔習 p.24〕', true),
+            examSentence('G6', 'G', 5, '6. 看上面的圖表。Connie 空閒時會做什麼？用完整的句子回答。', ['She', 'rides', 'a', 'bike', 'in', 'her', 'free', 'time', '.'], ['ride', 'does', 'is'], null, 'Connie 在 ride a bike。She rides a bike in her free time.〔習 p.24〕', true)
           ],
           recap: '看名字在哪一列。basketball 和 baseball 不一樣。人數要把每一列加總。'
         },

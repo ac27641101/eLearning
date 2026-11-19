@@ -546,7 +546,6 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   const used = (curLevel && curLevel.time && game.startedAt) ? Math.max(1, Math.min(curLevel.time, Math.round((Date.now() - game.startedAt) / 1000))) : 0;
   const timeLine = used ? `<div class="m-time">這關用了 ${used} 秒</div>` : '';
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>${timeLine}`;

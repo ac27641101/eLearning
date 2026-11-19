@@ -212,7 +212,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'stone'}"), unit);
     assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'wood'}"), unit);
     assert.ok(!js.includes("{label: '📋 回單元'"), unit + ' small-unit back button is 回小單元');
-    assert.ok(js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit);
+    assert.ok(!js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit + ' result window does not skip to the chapter');
     assert.ok(js.includes("else if (v === 'lobby') renderLobby();"), unit);
     assert.ok(!js.includes("location.href = '../'"), unit + ' finish dialog stays in the unit');
     const finish = js.slice(js.indexOf('async function finishLevel'), js.indexOf('function makeDraggable'));
