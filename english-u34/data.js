@@ -232,23 +232,23 @@
           name: 'Jim 和 Eva',
           questions: [
             {
-              id: 'u4l4-1', q: '選出正確的答案。', stem: 'What time does Eva get up?',
+              id: 'u4l4-1', factKey: 'u4l4-1', q: '選出正確的答案。', stem: 'What time does Eva get up?',
               opts: ['She gets up at seven twenty.', 'She gets up at six thirty.', 'She gets up at seven thirty.'],
               passage: JIM,
               why: 'Eva gets up at seven twenty. Jim 才是 six thirty。〔習 p.30〕'
             },
             {
-              id: 'u4l4-2', q: '這句對不對？', stem: 'Jim gets up at six thirty.',
+              id: 'u4l4-2', factKey: 'u4l4-2', q: '這句對不對？', stem: 'Jim gets up at six thirty.',
               opts: ['T', 'F'], passage: JIM,
               why: 'He gets up at six thirty. 這句是對的。〔習 p.30〕'
             },
             {
-              id: 'u4l4-3', q: '這句對不對？', stem: 'Eva gets up at six thirty.',
+              id: 'u4l4-3', factKey: 'u4l4-3', q: '這句對不對？', stem: 'Eva gets up at six thirty.',
               opts: ['F', 'T'], passage: JIM,
               why: 'six thirty 是 Jim。Eva gets up at seven twenty。〔習 p.30〕'
             },
             {
-              id: 'u4l4-4', q: '這句對不對？看清楚是 baseball 還是 basketball。', stem: 'Jim plays baseball at five.',
+              id: 'u4l4-4', factKey: 'u4l4-4', q: '這句對不對？看清楚是 baseball 還是 basketball。', stem: 'Jim plays baseball at five.',
               opts: ['F', 'T'], passage: JIM,
               why: 'He plays basketball at five. 不是 baseball。〔習 p.30〕'
             },
@@ -437,37 +437,37 @@
   ];
 
   function q(id, ask, stem, opts, why, infer) {
-    return { id: id, q: ask, stem: stem, opts: opts, why: why, infer: !!infer };
+    return { id: id, factKey: id, q: ask, stem: stem, opts: opts, why: why, infer: !!infer };
   }
   function listen(id, ask, stem, say, opts, why) {
-    return { id: id, mode: 'listen', q: ask, stem: stem, say: say, opts: opts, why: why };
+    return { id: id, factKey: id, mode: 'listen', q: ask, stem: stem, say: say, opts: opts, why: why };
   }
   function pic(id, say, opts, why) {
-    return { id: id, mode: 'listen', q: '聽句子，點出對的圖。', say: say, opts: opts, why: why, big: true };
+    return { id: id, factKey: id, mode: 'listen', q: '聽句子，點出對的圖。', say: say, opts: opts, why: why, big: true };
   }
   function clockQ(id, say, clocks, why) {
-    return { id: id, mode: 'listen', q: '聽時間，點出時鐘。', say: say, clocks: clocks, why: why };
+    return { id: id, factKey: id, mode: 'listen', q: '聽時間，點出時鐘。', say: say, clocks: clocks, why: why };
   }
   function spell(id, ask, art, answer, extra, why) {
-    return { id: id, mode: 'spell', q: '看提示，用字母卡拼出單字。', stem: ask, art: art, answer: answer, extra: extra, why: why };
+    return { id: id, factKey: id, mode: 'spell', q: '看提示，用字母卡拼出單字。', stem: ask, art: art, answer: answer, extra: extra, why: why };
   }
   function sentence(id, ask, stem, tokens, extra, also, why, passage, infer) {
     var accept = [tokens].concat(also || []);
-    return { id: id, mode: 'sentence', q: ask, stem: stem, tokens: tokens, extra: extra, accept: accept, why: why, passage: passage || '', infer: !!infer };
+    return { id: id, factKey: id, mode: 'sentence', q: ask, stem: stem, tokens: tokens, extra: extra, accept: accept, why: why, passage: passage || '', infer: !!infer };
   }
   function tf(id, ask, stem, yes, why, passage, infer) {
     return {
-      id: id, q: ask, stem: stem, passage: passage || '',
+      id: id, factKey: id, q: ask, stem: stem, passage: passage || '',
       opts: yes ? ['T', 'F'] : ['F', 'T'],
       why: why, infer: !!infer
     };
   }
   function examListen(id, part, points, prompt, say, opts, why) {
-    return { id: id, part: part, points: points, mode: 'listen', prompt: prompt, stem: prompt, say: say, opts: opts, why: why, q: prompt };
+    return { id: id, factKey: id, part: part, points: points, mode: 'listen', prompt: prompt, stem: prompt, say: say, opts: opts, why: why, q: prompt };
   }
   function cloze(id, slot, answer, why) {
     return {
-      id: id, part: 'B', points: 3, mode: 'cloze', group: 'passageB', slot: slot, answer: answer, why: why,
+      id: id, factKey: id, part: 'B', points: 3, mode: 'cloze', group: 'passageB', slot: slot, answer: answer, why: why,
       prompt: '短文第 ' + (slot + 1) + ' 格',
       say: "The boy has some soybeans and coins. He puts them in his toy. Oh, no! It makes a big noise! Shout out! Shout out to the clown now! Look how he bounces around the crowd.",
       passage: 'The ___ has some soybeans and coins. He puts them in his ___. Shout out to the ___ now! Look how he bounces around the ___.',
@@ -476,32 +476,32 @@
   }
   function numPic(id, n, art, label, why) {
     return {
-      id: id, part: 'C', points: 3, mode: 'number', group: 'picsC', answer: n, art: art, label: label, why: why,
+      id: id, factKey: id, part: 'C', points: 3, mode: 'number', group: 'picsC', answer: n, art: art, label: label, why: why,
       prompt: label,
       say: "Number one. He gets up at six thirty. Number two. They go to school at seven thirty. Number three. They have lunch together at twelve o'clock. Number four. At nine thirty, Jim and Eva go to bed."
     };
   }
   function examSpell(id, part, points, prompt, art, answer, extra, why, infer) {
-    return { id: id, part: part, points: points, mode: 'spell', prompt: prompt, stem: prompt, art: art, answer: answer, extra: extra, why: why, infer: !!infer, q: prompt };
+    return { id: id, factKey: id, part: part, points: points, mode: 'spell', prompt: prompt, stem: prompt, art: art, answer: answer, extra: extra, why: why, infer: !!infer, q: prompt };
   }
   function examChoice(id, part, points, stem, opts, why, infer) {
-    return { id: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, opts: opts, why: why, infer: !!infer, q: stem };
+    return { id: id, factKey: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, opts: opts, why: why, infer: !!infer, q: stem };
   }
   function examTf(id, part, points, stem, yes, why, infer) {
     return {
-      id: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, infer: !!infer, why: why, q: stem,
+      id: id, factKey: id, part: part, points: points, mode: 'choice', prompt: stem, stem: stem, infer: !!infer, why: why, q: stem,
       opts: yes ? ['T', 'F'] : ['F', 'T']
     };
   }
   function examSentence(id, part, points, prompt, tokens, extra, also, why, infer) {
     return {
-      id: id, part: part, points: points, mode: 'sentence', prompt: prompt, stem: prompt, q: prompt,
+      id: id, factKey: id, part: part, points: points, mode: 'sentence', prompt: prompt, stem: prompt, q: prompt,
       tokens: tokens, extra: extra, accept: [tokens].concat(also || []), why: why, infer: !!infer
     };
   }
   function examForm(id, points, stem, choices, tokens, extra, also, why, infer) {
     return {
-      id: id, part: 'H', points: points, mode: 'form', prompt: stem, stem: stem, q: stem,
+      id: id, factKey: id, part: 'H', points: points, mode: 'form', prompt: stem, stem: stem, q: stem,
       choices: choices, tokens: tokens, extra: extra, accept: [tokens].concat(also || []),
       why: why, infer: !!infer
     };
