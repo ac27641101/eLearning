@@ -177,7 +177,7 @@ function testCopyAndSubjectLinks() {
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
-    const ver = unit === 'social-ch3' ? '20261120b' : '20261120a';
+    const ver = unit === 'social-ch3' ? '20261120c' : '20261120a';
     ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
       assert.ok(html.includes(file + '?v=' + ver), unit + ' ' + file);
     });
