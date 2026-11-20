@@ -1,7 +1,6 @@
-/* Every quiz question declares factKey: the one fact it tests.
-   The same fact asked again — reworded, flipped to the negative, or
-   bundled as 「哪兩項都對」— must reuse that key, and this check fails.
-   Sort cards and order rounds are the lesson text, not a second quiz. */
+/* Every quiz question declares factKey (the fact) and qtype (choice, tf, cloze, or match).
+   The same fact may be tested again only as a different question type.
+   Within one type, a fact key may appear only once in a 小單元. */
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -44,12 +43,15 @@ function audit(root) {
       const qs = questionsOf(unit);
       const groups = {};
       const missing = [];
+      const facts = new Set();
       qs.forEach(q => {
         if (!q.factKey) {
           missing.push(q.q || q.id || '(no question text)');
           return;
         }
-        (groups[q.factKey] = groups[q.factKey] || []).push(q.q || q.id);
+        facts.add(q.factKey);
+        const slot = q.factKey + '\n' + (q.qtype || 'choice');
+        (groups[slot] = groups[slot] || []).push((q.qtype || 'choice') + ' ' + (q.q || q.id));
       });
       const dups = Object.keys(groups).filter(k => groups[k].length > 1);
       rows.push({
@@ -57,8 +59,8 @@ function audit(root) {
         id: unit.id,
         name: unit.name,
         questions: qs.length,
-        facts: Object.keys(groups).length,
-        extra: qs.length - Object.keys(groups).length,
+        facts: facts.size,
+        extra: qs.length - facts.size,
         missing,
         dups: dups.map(k => ({ key: k, n: groups[k].length, sample: groups[k][0] }))
       });

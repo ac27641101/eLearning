@@ -62,7 +62,7 @@ Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261120a`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261120a`，社會第三單元這次是 `?v=20261120b`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 
