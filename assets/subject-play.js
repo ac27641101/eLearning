@@ -367,15 +367,17 @@
     if (restart) restart.hidden = S.isPractice(st) || !st.run;
     const list = $('rewardList');
     list.replaceChildren();
-    S.REWARD_META.forEach(meta => {
-      const got = S.earned(st, meta.id);
+    root.ELApprove.offersFor(st, CFG.chapter, u.id).forEach(offer => {
+      const meta = root.ELApprove.cardMeta(offer);
+      const got = !offer.locked;
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'peek-row' + (meta.tier === 'gold' ? ' gold' : '') + (got ? ' unlocked' : ' locked');
-      btn.setAttribute('aria-label', got ? meta.title + '，已解鎖，點開查看' : meta.title + '，還沒解鎖');
-      btn.innerHTML = '<span class="peek-ico" aria-hidden="true">' + controllerSVG() + '</span><span class="peek-title">' + meta.short + '</span>' + (got ? '<span class="peek-open">點開</span>' : '<span class="peek-lock" aria-hidden="true">🔒</span>');
+      btn.dataset.reward = meta.id;
+      btn.setAttribute('aria-label', meta.title + (offer.approval ? '，已核准' : (got ? '，已解鎖，點開查看' : '，還沒解鎖')));
+      btn.innerHTML = '<span class="peek-ico" aria-hidden="true">' + controllerSVG() + '</span><span class="peek-title">' + meta.short + '</span>' + (offer.approval ? '<span class="peek-open">已核准</span>' : (got ? '<span class="peek-open">點開</span>' : '<span class="peek-lock" aria-hidden="true">🔒</span>'));
       btn.addEventListener('click', () => {
-        if (!S.earned(loadScore(u), meta.id)) {
+        if (offer.locked) {
           const left = S.hintText(S.best(loadScore(u)));
           toast(left ? '🔒 ' + left : '再努力一下就解鎖囉！');
           Sound.bad();
@@ -557,9 +559,8 @@
       html: html,
       buttons: btns
     });
-    for (const id of result.unlocked) {
-      const meta = S.rewardMeta(id);
-      if (meta) await showRewardCard(meta, { celebrate: true, unitName: curUnit.name });
+    for (const offer of root.ELApprove.celebrateOffers(result.unlocked, after, CFG.chapter, curUnit.id)) {
+      await showRewardCard(root.ELApprove.cardMeta(offer), { celebrate: true, unitName: curUnit.name });
     }
     if (v === 'again') startLevel(curLevel);
     else if (v === 'next') startLevel(next);
@@ -993,6 +994,7 @@
       screenMode = 'push';
     });
     document.addEventListener('el-scores-ready', refreshAfterScores);
+    document.addEventListener('el-approvals-ready', refreshAfterScores);
     document.addEventListener('el-scores-updated', refreshAfterScores);
     if (root.ELScoresReady) refreshAfterScores();
     const preview = S.rewardMeta(new URLSearchParams(location.search).get('preview'));
