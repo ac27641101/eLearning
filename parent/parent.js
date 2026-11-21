@@ -242,8 +242,10 @@
     Object.keys(levels).forEach(function (id) {
       var level = levels[id] || {};
       var wrong = level.wrong || [];
-      var starLine = (typeof level.lastRunMax === 'number' && level.lastRunMax > 0 && typeof level.lastRunStars === 'number')
-        ? ('　上次 ★ ' + level.lastRunStars + ' / ' + level.lastRunMax)
+      var lastStars = (typeof level.lastRunStars === 'number') ? level.lastRunStars : level.stars;
+      var lastMax = (typeof level.lastRunMax === 'number' && level.lastRunMax > 0) ? level.lastRunMax : level.max;
+      var starLine = (typeof lastMax === 'number' && lastMax > 0 && typeof lastStars === 'number')
+        ? ('　上次 ★ ' + lastStars + ' / ' + lastMax)
         : '';
       html += '<div class="wrong-level"><p><b>' + esc(id) + '</b>' + starLine + '</p>';
       if (!wrong.length) html += '<p>上次全對！</p>';

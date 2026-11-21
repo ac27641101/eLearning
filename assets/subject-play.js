@@ -416,7 +416,7 @@
     $('levels').innerHTML = u.levels.map((l, i) => {
       const lvRev = review.levels[l.id];
       const see = lvRev ? '<button type="button" class="px-btn lv-review" data-review="' + i + '">看錯題</button>' : '';
-      return '<div class="lv-card px" data-l="' + i + '"><span class="lv-ico">' + l.icon + '</span><span class="chip ' + KIND[l.kind][1] + '">' + KIND[l.kind][0] + '</span><span class="lv-name">第 ' + (i + 1) + ' 關：' + esc(l.name) + '</span><span class="lv-how">' + esc(S.howLine(l)) + '</span><span class="lv-st">' + esc(S.levelMark(st, l.id, lvRev)) + '</span>' + see + '</div>';
+      return '<div class="lv-card px" data-l="' + i + '"><span class="lv-ico">' + l.icon + '</span><span class="chip ' + KIND[l.kind][1] + '">' + KIND[l.kind][0] + '</span><span class="lv-name">第 ' + (i + 1) + ' 關：' + esc(l.name) + '</span><span class="lv-how">' + esc(S.howLine(l)) + '</span><span class="lv-st">' + esc(S.levelMark(st, l.id, lvRev, S.countItems(l))) + '</span>' + see + '</div>';
     }).join('');
     $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => {
       Sound.click();
