@@ -514,22 +514,31 @@
     return (level && level.how) || '';
   }
 
-  function levelMark(state, levelId, levelReview) {
+  function levelMark(state, levelId, levelReview, itemMax) {
     const practice = isPractice(state);
     const hasRun = !!(state && state.run && state.run.levels);
     const inRun = hasRun && Object.prototype.hasOwnProperty.call(state.run.levels, levelId);
+    if (inRun) {
+      const stars = Math.max(0, Math.round(state.run.levels[levelId]));
+      const max = positiveCount(itemMax) || positiveCount(levelReview && levelReview.max) || positiveCount(levelReview && levelReview.lastRunMax);
+      if (max) {
+        const text = '上次 ★ ' + stars + ' / ' + max;
+        return practice ? '練習・' + text : text;
+      }
+    }
     const last = lastRunText(levelReview);
     if (practice) return last ? '練習・' + last : '練習';
-    if (hasRun) {
-      if (inRun) return '這次 ★ ' + state.run.levels[levelId];
-      return '這次還沒玩';
-    }
     if (last) return last;
     return '還沒有每關紀錄';
   }
 
-  /* 上次 ★ 只讀完整跑完那一次寫下的 lastRunStars / lastRunMax。
-     舊紀錄只有 stars、max（沒玩完也寫進去）時，不當成上次。 */
+  function positiveCount(value) {
+    if (typeof value !== 'number' || !isFinite(value) || value <= 0) return 0;
+    return Math.max(0, Math.min(30, Math.round(value)));
+  }
+
+  /* 新紀錄用 lastRunStars / lastRunMax。更早的關卡紀錄只有 stars、max，
+     那就是這一關最近一次玩完的星數，畫面仍要顯示，但不改寫分數文件。 */
   function finishedRunMark(levelReview) {
     if (!levelReview) return null;
     if (typeof levelReview.lastRunStars !== 'number' || !isFinite(levelReview.lastRunStars)) return null;
@@ -540,8 +549,19 @@
     };
   }
 
+  function legacyRunMark(levelReview) {
+    if (!levelReview) return null;
+    const max = positiveCount(levelReview.max);
+    if (!max) return null;
+    if (typeof levelReview.stars !== 'number' || !isFinite(levelReview.stars)) return null;
+    return {
+      lastRunStars: Math.max(0, Math.min(30, Math.round(levelReview.stars))),
+      lastRunMax: max
+    };
+  }
+
   function lastRunText(levelReview) {
-    const mark = finishedRunMark(levelReview);
+    const mark = finishedRunMark(levelReview) || legacyRunMark(levelReview);
     if (!mark) return '';
     return '上次 ★ ' + mark.lastRunStars + ' / ' + mark.lastRunMax;
   }

@@ -441,7 +441,7 @@ function openUnit(u){
     return `<div class="lv-card px" data-l="${i}">
       <span class="lv-ico">${S.showGlyph(l.icon)}</span><span class="chip ${KIND[l.kind][1]}">${KIND[l.kind][0]}</span>
       <span class="lv-name">第 ${i + 1} 關：${l.name}</span><span class="lv-how">${S.howLine(l)}</span>
-      <span class="lv-st">${S.levelMark(st, l.id, lvRev)}</span>${see}</div>`;
+      <span class="lv-st">${S.levelMark(st, l.id, lvRev, S.countItems(l))}</span>${see}</div>`;
   }).join('');
   $('levels').querySelectorAll('.lv-card').forEach(c => c.addEventListener('click', () => { Sound.click(); startLevel(u.levels[+c.dataset.l]); }));
   $('levels').querySelectorAll('.lv-review').forEach(b => b.addEventListener('click', (e) => {
