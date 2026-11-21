@@ -32,6 +32,106 @@
     return top >= scores.NEED_MINUTES_60;
   }
 
+  function pairFromRows(rows) {
+    var pair = { reward1: null, reward2: null };
+    rows.forEach(function (row) {
+      if (row.tier === 'reward1') pair.reward1 = row;
+      if (row.tier === 'reward2') pair.reward2 = row;
+    });
+    return pair;
+  }
+
+  function unitPair(chapter, unitId, bag) {
+    if (bag) {
+      return pairFromRows(approvalRows(bag).filter(function (row) {
+        return row.chapter === chapter && row.unitId === unitId;
+      }));
+    }
+    return {
+      reward1: cached(chapter, unitId, 'reward1'),
+      reward2: cached(chapter, unitId, 'reward2')
+    };
+  }
+
+  function offerFrom(meta, extra) {
+    return {
+      rewardId: meta.id,
+      id: meta.id,
+      minutes: extra.minutes,
+      topup: !!extra.topup,
+      locked: !!extra.locked,
+      approval: extra.approval || null,
+      tier: extra.topup ? 'gold' : meta.tier,
+      short: extra.short || meta.short,
+      title: extra.title || meta.title,
+      redeem: extra.redeem || meta.redeem,
+      kicker: extra.kicker || meta.kicker
+    };
+  }
+
+  /* 一個小單元只換一張券。30 顆星把 30 分鐘升級成 60 分鐘。
+     30 分鐘已經核准、後來才到 30 顆星時，改發一張補 30 分鐘。 */
+  function offersFor(state, chapter, unitId, bag) {
+    var scores = root.UnitScore;
+    var normalized = scores.normalize(state);
+    var best = scores.best(normalized);
+    var earned30 = scores.earned(normalized, 'reward1') && best >= scores.NEED_MINUTES_30;
+    var earned60 = scores.earned(normalized, 'reward2') && best >= scores.NEED_MINUTES_60;
+    var pair = unitPair(chapter, unitId, bag);
+    var meta30 = scores.rewardMeta('reward1');
+    var meta60 = scores.rewardMeta('reward2');
+    if (pair.reward2 && pair.reward2.minutes === 60) {
+      return [offerFrom(meta60, { minutes: 60, approval: pair.reward2 })];
+    }
+    if (pair.reward1 || (pair.reward2 && pair.reward2.minutes === 30)) {
+      var list = [offerFrom(meta30, { minutes: 30, approval: pair.reward1, locked: !pair.reward1 && !earned30 })];
+      if (earned60 || pair.reward2) {
+        list.push(offerFrom(meta60, {
+          minutes: 30,
+          topup: true,
+          approval: pair.reward2,
+          locked: !earned60 && !pair.reward2,
+          short: '補 30 分鐘',
+          title: '補 30 分鐘',
+          redeem: '憑此卡可以再玩 Switch 30 分鐘',
+          kicker: '加時'
+        }));
+      }
+      return list;
+    }
+    if (earned60) return [offerFrom(meta60, { minutes: 60 })];
+    return [offerFrom(meta30, { minutes: 30, locked: !earned30 })];
+  }
+
+  function cardMeta(offer) {
+    return {
+      id: offer.rewardId,
+      minutes: offer.minutes,
+      tier: offer.tier,
+      short: offer.short,
+      title: offer.title,
+      redeem: offer.redeem,
+      kicker: offer.kicker,
+      topup: !!offer.topup
+    };
+  }
+
+  function celebrateOffers(unlocked, state, chapter, unitId) {
+    var want = {};
+    (unlocked || []).forEach(function (id) { want[id] = true; });
+    return offersFor(state, chapter, unitId).filter(function (offer) {
+      return want[offer.rewardId] && !offer.locked && !offer.approval;
+    });
+  }
+
+  function minutesAllowed(state, chapter, unitId, rewardId, minutes) {
+    var pair = unitPair(chapter, unitId);
+    if (!tierEarned(state, rewardId)) return false;
+    if (rewardId === 'reward1') return minutes === 30 && !pair.reward2;
+    if (pair.reward1 || (pair.reward2 && pair.reward2.minutes === 30)) return minutes === 30;
+    return minutes === 60 && !pair.reward1;
+  }
+
   function toDate(value) {
     if (!value) return null;
     if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
@@ -109,21 +209,25 @@
     return list;
   }
 
-  function approvedMinutes(bag) {
-    var best = {};
+  function cappedUnitMinutes(bag) {
+    var sums = {};
     approvalRows(bag).forEach(function (row) {
       var key = row.chapter + '__' + row.unitId;
-      best[key] = Math.max(best[key] || 0, row.minutes);
+      sums[key] = (sums[key] || 0) + row.minutes;
     });
-    return Object.keys(best).reduce(function (sum, key) { return sum + best[key]; }, 0);
+    return sums;
+  }
+
+  function approvedMinutes(bag) {
+    var sums = cappedUnitMinutes(bag);
+    return Object.keys(sums).reduce(function (total, key) {
+      return total + Math.min(60, sums[key]);
+    }, 0);
   }
 
   function approvedMinutesFor(bag, chapter, unitId) {
-    var best = 0;
-    approvalRows(bag).forEach(function (row) {
-      if (row.chapter === chapter && row.unitId === unitId) best = Math.max(best, row.minutes);
-    });
-    return best;
+    var total = cappedUnitMinutes(bag)[chapter + '__' + unitId] || 0;
+    return Math.min(60, total);
   }
 
   function footHtml(approval, preview) {
@@ -184,10 +288,13 @@
   }
 
   function approvalRecord(ctx, profile) {
+    var minutes = minutesFor(ctx.rewardId);
+    if (ctx.rewardId === 'reward1') minutes = 30;
+    if (ctx.rewardId === 'reward2' && Number(ctx.minutes) === 30) minutes = 30;
     return {
       approvedBy: profile.uid,
       approverName: profile.displayName,
-      minutes: minutesFor(ctx.rewardId),
+      minutes: minutes,
       chapter: String(ctx.chapter),
       unitId: String(ctx.unitId),
       tier: ctx.rewardId,
@@ -198,7 +305,7 @@
   function parentListHtml(bag, nameOf) {
     var rows = approvalRows(bag);
     var html = '<section class="approve-block"><h3>已核准的兌換券</h3>'
-      + '<p class="approve-note">核准之後不能取消，兌換券也不能再使用。同一個小單元如果兩張都核准，分鐘合計用比較高的那張。</p>'
+      + '<p class="approve-note">核准之後不能取消，兌換券也不能再使用。同一個小單元加起來最多 60 分鐘。</p>'
       + '<p class="approve-total">已核准 Switch 一共 <b>' + approvedMinutes(rows) + '</b> 分鐘</p>';
     if (!rows.length) return html + '<p class="approve-empty">還沒有核准過的兌換券。</p></section>';
     html += '<ul class="approve-list">';
@@ -208,8 +315,9 @@
         var found = nameOf(row.chapter, row.unitId);
         if (found) name = found;
       }
+      var minuteLabel = (row.tier === 'reward2' && row.minutes === 30) ? '補 30 分鐘' : (row.minutes + ' 分鐘');
       html += '<li><span class="approve-unit">' + escapeHtml(name) + '</span><span>'
-        + row.minutes + ' 分鐘</span><span>' + escapeHtml(row.approverName) + '</span><time>'
+        + minuteLabel + '</span><span>' + escapeHtml(row.approverName) + '</span><time>'
         + escapeHtml(formatTaipei(row.approvedAt)) + '</time></li>';
     });
     return html + '</ul></section>';
@@ -240,6 +348,10 @@
     approvalId: approvalId,
     minutesFor: minutesFor,
     tierEarned: tierEarned,
+    offersFor: offersFor,
+    cardMeta: cardMeta,
+    celebrateOffers: celebrateOffers,
+    minutesAllowed: minutesAllowed,
     formatTaipei: formatTaipei,
     plainApproval: plainApproval,
     approvalRows: approvalRows,
@@ -355,7 +467,13 @@
       snap.forEach(function (docSnap) {
         remember(plainApproval(docSnap.id, docSnap.data() || {}));
       });
+      notifyApprovals();
     }).catch(function () {});
+  }
+
+  function notifyApprovals() {
+    if (!document || typeof document.dispatchEvent !== 'function' || typeof root.CustomEvent !== 'function') return;
+    document.dispatchEvent(new root.CustomEvent('el-approvals-ready'));
   }
 
   function paintTicket(article, ctx) {
@@ -433,7 +551,7 @@
         return;
       }
       var state = root.UnitScore.load(ctx.chapter, ctx.unitId);
-      if (!tierEarned(state, ctx.rewardId)) {
+      if (!minutesAllowed(state, ctx.chapter, ctx.unitId, ctx.rewardId, ctx.minutes)) {
         setModalError(failureMessage('not-earned'));
         return;
       }
@@ -479,13 +597,26 @@
       if (!gate.ok) return gate;
       var id = approvalId(ctx.chapter, ctx.unitId, ctx.rewardId);
       var ref = fsMod.doc(approverDb, 'users', childUid, 'approvals', id);
-      return fsMod.getDoc(ref).then(function (snap) {
+      var otherId = approvalId(ctx.chapter, ctx.unitId, ctx.rewardId === 'reward1' ? 'reward2' : 'reward1');
+      var otherRef = fsMod.doc(approverDb, 'users', childUid, 'approvals', otherId);
+      return Promise.all([fsMod.getDoc(ref), fsMod.getDoc(otherRef)]).then(function (snaps) {
+        var snap = snaps[0];
+        var other = snaps[1];
         if (snap && typeof snap.exists === 'function' && snap.exists()) {
           var existing = plainApproval(snap.id || id, snap.data() || {});
           remember(existing);
           return { ok: false, code: 'already', message: failureMessage('already'), approval: existing };
         }
+        var otherExists = !!(other && typeof other.exists === 'function' && other.exists());
+        var expected = ctx.rewardId === 'reward1' ? 30 : (otherExists ? 30 : 60);
+        if (ctx.rewardId === 'reward1' && otherExists) {
+          return { ok: false, code: 'already', message: '這個小單元已經核准過兌換券，不能再核 30 分鐘。' };
+        }
+        if (Number(ctx.minutes) !== expected) {
+          return { ok: false, code: 'mismatch', message: '這張兌換券的分鐘跟雲端不一致，請先收起來再打開一次。' };
+        }
         var record = approvalRecord(ctx, profile);
+        record.minutes = expected;
         record.approvedAt = fsMod.serverTimestamp();
         return fsMod.setDoc(ref, record).then(function () {
           return fsMod.getDoc(ref);
