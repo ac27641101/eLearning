@@ -1,4 +1,5 @@
-/* 家長頁：列出每個孩子的小單元星星、次數、Switch 分鐘，以及英文模擬考 /100。 */
+/* 家長頁：列出每個孩子的小單元星星、次數、Switch 分鐘，以及英文模擬考 /100。
+   已核准的兌換券另外列在每個孩子下面。星星換到的分鐘維持原樣，不改成核准分鐘。 */
 (function () {
   'use strict';
 
@@ -260,6 +261,10 @@
     if (unit.exam || sum.examBest != null) {
       end += '<span class="stat exam">' + (sum.examBest == null ? '考卷 — / 100' : '考卷 ' + sum.examBest + ' / 100') + '</span>';
     }
+    if (window.ELApprove && child.approvals) {
+      var usedMin = ELApprove.approvedMinutesFor(child.approvals, chapter, unit.id);
+      if (usedMin) end += '<span class="stat used">已核准 ' + usedMin + ' 分鐘</span>';
+    }
     if (child.uid && state && !blank(state)) {
       end += '<button type="button" class="reset-btn" data-uid="' + esc(child.uid) + '" data-chapter="' + esc(chapter) + '" data-unit="' + esc(unit.id) + '" data-name="' + esc(unit.name) + '">重置</button>';
     }
@@ -312,6 +317,7 @@
       return html;
     }
     html += '<p class="total-min">Switch 一共 <b>' + totalMinutes(child) + '</b> 分鐘</p>';
+    if (window.ELApprove) html += ELApprove.parentListHtml(child.approvals || {}, findUnitName);
     if (exams.length) {
       html += '<p class="exam-line">' + exams.map(function (item) {
         return '模擬考最好 ' + item.examBest + ' / 100';
@@ -340,7 +346,7 @@
           window.alert('這是預覽，不會真的清掉。');
           return;
         }
-        var ok = window.confirm('確定要重置「' + name + '」嗎？\n星星、計分次數、Switch 分鐘和模擬考分數都會清成 0，這個小單元可以再計分 3 次。');
+        var ok = window.confirm('確定要重置「' + name + '」嗎？\n星星、計分次數、Switch 分鐘和模擬考分數都會清成 0，這個小單元可以再計分 3 次。已經核准的兌換券不會取消。');
         if (!ok) return;
         var state = scoreOf(child, chapter, unitId) || {};
         var rev = UnitScore.normalize(state).rev + 1;
@@ -403,6 +409,18 @@
           'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86 }),
           'chinese-u3__ch7': pack('chinese-u3', 'ch7', [26], { rewards: { reward1: '2026-11-08' } }),
           'math-u6__6-1': pack('math-u6', '6-1', [30], { rewards: { reward1: '2026-11-09', reward2: '2026-11-09' } })
+        },
+        approvals: {
+          'math-u6__6-1__reward2': {
+            approvedBy: 'parent-smc',
+            approverName: 'smc',
+            approvedAt: '2026-11-21T14:30:00.000Z',
+            minutes: 60,
+            chapter: 'math-u6',
+            unitId: '6-1',
+            tier: 'reward2',
+            unitName: '6-1 異分母分數的加法'
+          }
         },
         reviews: {
           'social-ch3__sugar': {
@@ -542,7 +560,8 @@
           account: data.account || '',
           email: data.email || '',
           scores: {},
-          reviews: {}
+          reviews: {},
+          approvals: {}
         });
       });
       return Promise.all(profiles.map(function (profile) {
@@ -562,7 +581,12 @@
               var unitId = data.unitId || parts.slice(1).join('__');
               profile.reviews[chapter + '__' + unitId] = data;
             });
-            return profile;
+            return fb.getDocs(fb.collection(fb.db, 'users', profile.uid, 'approvals')).then(function (approvals) {
+              approvals.forEach(function (approvalSnap) {
+                profile.approvals[approvalSnap.id] = approvalSnap.data() || {};
+              });
+              return profile;
+            }).catch(function () { return profile; });
           }).catch(function () { return profile; });
         });
       }));

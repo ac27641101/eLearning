@@ -87,6 +87,8 @@
     PARENT_EMAILS: PARENT_EMAILS,
     TEST_ACCOUNTS: TEST_ACCOUNTS,
     DISPLAY_NAMES: DISPLAY_NAMES,
+    firebaseConfig: firebaseConfig,
+    FIREBASE_VERSION: FIREBASE_VERSION,
     loginEmail: loginEmail,
     isParentEmail: isParentEmail,
     isTestAccount: isTestAccount,
