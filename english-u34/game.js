@@ -125,9 +125,8 @@ function bindAudio(root, text){
   const showFallback = () => {
     if (!note || !fb) return;
     note.hidden = false;
-    note.textContent = '這台裝置沒有英文語音，先看英文再作答。';
-    fb.hidden = false;
-    fb.textContent = text;
+    note.textContent = '這台裝置沒有英文語音。請大人念給你聽，先不要看答案。';
+    fb.hidden = true;
   };
   const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
   if (!window.speechSynthesis || (voices.length && !voices.some(v => /^en/i.test(v.lang)))) showFallback();
@@ -559,7 +558,6 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   const used = (curLevel && curLevel.time && game.startedAt) ? Math.max(1, Math.min(curLevel.time, Math.round((Date.now() - game.startedAt) / 1000))) : 0;
   const timeLine = used ? `<div class="m-time">這關用了 ${used} 秒</div>` : '';
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>${timeLine}`;
@@ -639,7 +637,7 @@ function optButton(o, i){
   return `<button type="button" class="px-btn opt${big ? ' opt-big' : ''}" data-i="${i}">${text}</button>`;
 }
 function cardFace(it){
-  return `<span class="em">${S.showGlyph(it.em || '')}</span><span class="tx">${S.escapeHtml(it.t)}${it.gloss ? `<small class="gloss">${S.escapeHtml(it.gloss)}</small>` : ''}</span>`;
+  return `<span class="em">${S.showGlyph(it.em || '')}</span><span class="tx">${S.escapeHtml(it.t)}</span>`;
 }
 function makePool(pieces, extra){
   const tiles = [];
@@ -873,7 +871,7 @@ function renderSpellQ(q, next, index, total){
   });
 }
 function renderSentenceQ(q, next, index, total){
-  setProg(index + 1, total); setAsk(q.q);
+  setProg(index + 1, total); setAsk(q.stem || q.q);
   $('stage').innerHTML = `<div class="panel px">${panelBits(q)}<div id="tiles"></div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>`;
   const box = mountTiles($('tiles'), { pieces: q.tokens, extra: q.extra, mode: 'words' });
   let locked = false;
@@ -886,7 +884,7 @@ function renderSentenceQ(q, next, index, total){
     const yours = got.length ? showSentence(got) : '（空白）';
     if (ok){ goodItem(q.id); bigCheck(); }
     else missItem(q.id, '句子還不對，這顆星拿不到。', { q: stripTags(q.q), a: yours, c: showSentence(q.tokens) });
-    $('why').innerHTML = `<div class="explain" style="margin-top:10px">💡 ${S.escapeHtml(q.why || '')}<br>你排成：${S.escapeHtml(yours)}<br>可以寫成：${S.escapeHtml(showSentence(q.tokens))}</div>` + nextBtn(index, total);
+    $('why').innerHTML = `<div class="explain" style="margin-top:10px">💡 ${S.escapeHtml(q.why || '')}<br>你排成：${S.escapeHtml(yours)}</div><p class="spell-fix">正確英文：${S.escapeHtml(showSentence(q.tokens))}</p>` + nextBtn(index, total);
     $('checkBtn').disabled = true;
     $('nextQ').addEventListener('click', () => { Sound.click(); next(); });
   });
@@ -987,7 +985,7 @@ function mountNumber(host, items){
       b.type = 'button';
       b.className = 'pic-card';
       const n = assigned[q.id];
-      b.innerHTML = `<span class="pic-no">${n || ''}</span><span class="pic-art">${q.art}</span><span class="pic-label">${S.escapeHtml(q.label)}</span>`;
+      b.innerHTML = `<span class="pic-no">${n || ''}</span><span class="pic-art">${q.art}</span>`;
       b.addEventListener('click', () => {
         if (game.graded) return;
         Sound.click();

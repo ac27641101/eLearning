@@ -242,7 +242,10 @@
     Object.keys(levels).forEach(function (id) {
       var level = levels[id] || {};
       var wrong = level.wrong || [];
-      html += '<div class="wrong-level"><p><b>' + esc(id) + '</b>　上次 ★ ' + (level.stars || 0) + ' / ' + (level.max || 0) + '</p>';
+      var starLine = (typeof level.lastRunMax === 'number' && level.lastRunMax > 0 && typeof level.lastRunStars === 'number')
+        ? ('　上次 ★ ' + level.lastRunStars + ' / ' + level.lastRunMax)
+        : '';
+      html += '<div class="wrong-level"><p><b>' + esc(id) + '</b>' + starLine + '</p>';
       if (!wrong.length) html += '<p>上次全對！</p>';
       wrong.forEach(function (item) {
         html += '<p class="wrong-item">題目：' + esc(item.q) + '<br><span class="ans-bad">你的答案：' + esc(item.a || '（空白）') + '</span><br><span class="ans-good">正確答案：' + esc(item.c) + '</span></p>';
@@ -429,6 +432,7 @@
             levels: {
               'sugar-hand': {
                 stars: 6, max: 8,
+                lastRunStars: 6, lastRunMax: 8,
                 wrong: [{ q: '虎尾鎮有「糖都」之稱', a: '出口', c: '糖都虎尾' }],
                 at: '2026-11-18'
               }

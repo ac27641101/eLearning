@@ -448,7 +448,6 @@ async function finishLevel(){
   const btns = [{label: '🔁 再玩一次', value: 'again', cls: 'wood'}];
   if (next) btns.push({label: '▶ 下一關', value: 'next', cls: 'orange'});
   btns.push({label: '📋 回小單元', value: 'unit', cls: 'stone'});
-  btns.push({label: '⬅ 回單元', value: 'lobby', cls: 'wood'});
   const used = (curLevel && curLevel.time && game.startedAt) ? Math.max(1, Math.min(curLevel.time, Math.round((Date.now() - game.startedAt) / 1000))) : 0;
   const timeLine = used ? `<div class="m-time">這關用了 ${used} 秒</div>` : '';
   let html = `<div class="m-stars">★ ${stars} / ${game.items}</div>${timeLine}`;
@@ -511,6 +510,25 @@ function makeDraggable(card, {findTarget, onDrop, onTap}){
 function quizWhy(q){
   return `<div class="explain" style="margin-top:10px">💡 ${q.why || '答對了！'}${q.trap ? `<div class="trap">⚠️ 小心陷阱：${q.trap}</div>` : ''}</div>`;
 }
+function spacedShuffle(list){
+  const arr = S.shuffle(list.slice());
+  for (let pass = 0; pass < arr.length; pass++){
+    let moved = false;
+    for (let i = 1; i < arr.length; i++){
+      if (!arr[i].factKey || arr[i].factKey !== arr[i - 1].factKey) continue;
+      let j = -1;
+      for (let k = i + 1; k < arr.length; k++){
+        if (arr[k].factKey !== arr[i].factKey){ j = k; break; }
+      }
+      if (j > i){
+        const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return arr;
+}
 const RENDER = {
   sort(lv){
     setAsk(lv.ask);
@@ -550,7 +568,7 @@ const RENDER = {
   },
 
   quiz(lv){
-    const qs = S.shuffle(lv.questions);
+    const qs = spacedShuffle(lv.questions);
     let qi = 0;
     const step = () => {
       if (game.over) return;
@@ -558,7 +576,9 @@ const RENDER = {
       const q = qs[qi]; setProg(qi + 1, qs.length); setAsk(q.q);
       const opts = S.choiceDeck(q.opts);
       let locked = false;
+      const stem = q.stem ? `<p class="q-stem" style="font-size:1.15rem;line-height:1.7;margin:4px 0 14px;padding:12px 14px;background:#fff8e8;border-radius:14px">${S.escapeHtml(q.stem)}</p>` : '';
       $('stage').innerHTML = `<div class="panel px">${q.art ? `<div class="q-art">${S.showGlyph(q.art)}</div>` : ''}
+        ${stem}
         <div class="opts">${opts.map((o, i) => `<button class="px-btn opt" data-i="${i}">${'ABCD'[i]}. ${o.t}</button>`).join('')}</div>
         <div id="why"></div></div>`;
       $('stage').querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {

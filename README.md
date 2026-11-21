@@ -73,7 +73,7 @@ Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組。這次父母簽名用的是 `?v=20261121a`（`gate.js`、`reward-approve.js`、`subject-play.js`、有改過的 `game.js`，以及家長頁的 `parent.css`、`parent.js`）。還沒改到的檔案仍是較早的版本：社會、自然、英文的 `style.css`、`data.js`、`unit-score.js` 是 `?v=20261119c`；家長頁的 `hub.css`、`unit-score.js` 是 `?v=20261119d`；學習島的 `hub.css`、`hub.js`，以及國語、數學的 `subject.css`、`data.js`、`unit-score.js` 是 `?v=20261119e`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前全部是 `?v=20261121d`），包含 `gate.js`、`unit-score.js`、`reward-approve.js`、`hub.js`、`hub.css`、`subject.css`、`subject-play.js`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 

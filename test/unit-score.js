@@ -179,12 +179,12 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
     const versions = {
-      '../assets/gate.js': '20261121a',
-      'style.css': '20261121b',
-      '../assets/unit-score.js': '20261119c',
-      '../assets/reward-approve.js': '20261121c',
-      'data.js': '20261119c',
-      'game.js': '20261121c'
+      '../assets/gate.js': '20261121d',
+      'style.css': '20261121d',
+      '../assets/unit-score.js': '20261121d',
+      '../assets/reward-approve.js': '20261121d',
+      'data.js': '20261121d',
+      'game.js': '20261121d'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), unit + ' ' + file);
@@ -224,7 +224,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'stone'}"), unit);
     assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'wood'}"), unit);
     assert.ok(!js.includes("{label: '📋 回單元'"), unit + ' small-unit back button is 回小單元');
-    assert.ok(js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit);
+    assert.ok(!js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit + ' result window does not skip to the chapter');
     assert.ok(js.includes("else if (v === 'lobby') renderLobby();"), unit);
     assert.ok(!js.includes("location.href = '../'"), unit + ' finish dialog stays in the unit');
     const finish = js.slice(js.indexOf('async function finishLevel'), js.indexOf('function makeDraggable'));
@@ -244,12 +244,11 @@ function testCopyAndSubjectLinks() {
   assert.ok(hub.includes('showSubjects();'));
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
-  assert.ok(hubPage.includes('assets/gate.js?v=20261121a'), 'hub gate');
-  ['assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261119e'), 'hub ' + file);
+  ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
+    assert.ok(hubPage.includes(file + '?v=20261121d'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261121a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261121d') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -261,12 +260,12 @@ function testCopyAndSubjectLinks() {
   const english = fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8');
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
-  assert.ok(parentPage.includes('../assets/gate.js?v=20261121a'), 'parent gate');
-  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261121c'), 'parent approve');
-  assert.ok(parentPage.includes('parent.css?v=20261121a'), 'parent css');
-  assert.ok(parentPage.includes('parent.js?v=20261121a'), 'parent js');
+  assert.ok(parentPage.includes('../assets/gate.js?v=20261121d'), 'parent gate');
+  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261121d'), 'parent approve');
+  assert.ok(parentPage.includes('parent.css?v=20261121d'), 'parent css');
+  assert.ok(parentPage.includes('parent.js?v=20261121d'), 'parent js');
   ['../assets/hub.css', '../assets/unit-score.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261119d'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261121d'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -485,7 +484,8 @@ function testLevelMarkAndReview() {
   done.scores = [29];
   assert.strictEqual(done.run, null);
   assert.strictEqual(S.levelMark(done, 'lv1', null), '還沒有每關紀錄');
-  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8 }), '上次 ★ 7 / 8');
+  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8 }), '還沒有每關紀錄');
+  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8, lastRunStars: 7, lastRunMax: 8 }), '上次 ★ 7 / 8');
   assert.strictEqual(S.levelMark(done, 'lv1', { stars: 4, max: 0, wrong: [{ q: '題', a: '錯', c: '對' }] }), '還沒有每關紀錄');
   const partial = S.memoryStorage();
   S.saveReviewLevel('social-ch3', 'sugar', 'hand', {
@@ -498,12 +498,14 @@ function testLevelMarkAndReview() {
   assert.strictEqual(kept.stars, 8);
   assert.strictEqual(kept.max, 8);
   assert.strictEqual(kept.wrong[0].q, '新題');
-  assert.strictEqual(S.levelMark(S.emptyState(), 'hand', kept), '上次 ★ 8 / 8');
+  assert.ok(kept.lastRunStars == null);
+  assert.strictEqual(S.levelMark(S.emptyState(), 'hand', kept), '還沒有每關紀錄');
 
   const practice = S.emptyState();
   practice.scores = [1, 1, 1];
   assert.strictEqual(S.isPractice(practice), true);
-  assert.strictEqual(S.levelMark(practice, 'lv1', { stars: 6, max: 8 }), '練習・上次 ★ 6 / 8');
+  assert.strictEqual(S.levelMark(practice, 'lv1', { stars: 6, max: 8 }), '練習');
+  assert.strictEqual(S.levelMark(practice, 'lv1', { lastRunStars: 6, lastRunMax: 8 }), '練習・上次 ★ 6 / 8');
   assert.strictEqual(S.levelMark(practice, 'lv1', null), '練習');
 
   const box = S.memoryStorage();
@@ -549,6 +551,62 @@ function testLevelMarkAndReview() {
   const scoreRules = rules.slice(rules.indexOf('match /scores/{scoreId}'), rules.indexOf('match /reviews/{reviewId}'));
   assert.ok(scoreRules.includes('childScoreWrite'));
   assert.ok(scoreRules.includes('validShape(scoreId)'));
+}
+
+function testPartialRestartDoesNotBecomeLastRun() {
+  const ids = ['lv1', 'lv2', 'lv3', 'lv4'];
+  const box = S.memoryStorage();
+  const chapter = 'english-u34';
+  const unitId = 'weak';
+  const partial = S.commitLevel(S.emptyState(), {
+    levelId: 'lv1', stars: 6, levelIds: ids, iso: '2026-11-20'
+  });
+  assert.strictEqual(partial.runLevels, null);
+  S.saveReviewLevels(chapter, unitId, [{
+    levelId: 'lv1', stars: 6, max: 8,
+    wrong: [{ q: '題', a: '錯', c: '對' }],
+    at: '2026-11-20', commitStars: false
+  }], box);
+  const restarted = S.restartRun(partial.state);
+  assert.strictEqual(restarted.run, null);
+  const unfinished = S.loadReview(chapter, unitId, box).levels.lv1;
+  assert.ok(unfinished.lastRunStars == null && unfinished.lastRunMax == null);
+  assert.strictEqual(S.levelMark(restarted, 'lv1', unfinished), '還沒有每關紀錄');
+  assert.ok(S.reviewBodyHtml(unfinished).includes('上次這關錯了 1 題'));
+  assert.strictEqual(S.levelMark(S.emptyState(), 'lv1', { stars: 6, max: 8 }), '還沒有每關紀錄');
+
+  let state = S.emptyState();
+  let last = null;
+  ids.forEach((id, i) => {
+    last = S.commitLevel(state, { levelId: id, stars: i === 0 ? 6 : 8, levelIds: ids, iso: '2026-11-20' });
+    state = last.state;
+  });
+  assert.ok(last.runLevels);
+  assert.strictEqual(last.runLevels.lv1, 6);
+  assert.strictEqual(state.run, null);
+  S.saveReviewLevels(chapter, unitId, ids.map(id => ({
+    levelId: id,
+    stars: last.runLevels[id],
+    max: 8,
+    wrong: id === 'lv1' ? [{ q: '題', a: '錯', c: '對' }] : null,
+    at: '2026-11-20',
+    commitStars: true,
+    keepWrong: id !== 'lv1'
+  })), box);
+  const finished = S.loadReview(chapter, unitId, box).levels.lv1;
+  assert.strictEqual(finished.lastRunStars, 6);
+  assert.strictEqual(finished.lastRunMax, 8);
+  assert.strictEqual(S.levelMark(state, 'lv1', finished), '上次 ★ 6 / 8');
+  S.saveReviewLevels(chapter, unitId, [{
+    levelId: 'lv1', stars: 1, max: 8,
+    wrong: [{ q: '新題', a: '新答', c: '對' }],
+    at: '2026-11-21', commitStars: false
+  }], box);
+  const kept = S.loadReview(chapter, unitId, box).levels.lv1;
+  assert.strictEqual(kept.lastRunStars, 6);
+  assert.strictEqual(kept.lastRunMax, 8);
+  assert.strictEqual(kept.wrong[0].q, '新題');
+  assert.strictEqual(S.levelMark(S.restartRun(state), 'lv1', kept), '上次 ★ 6 / 8');
 }
 
 function loadChapterUnits(dir) {
@@ -638,13 +696,13 @@ function testNewSubjects() {
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
     const versions = {
-      '../assets/subject.css': '20261121b',
-      '../assets/subject-play.js': '20261121c',
-      '../assets/reward-approve.js': '20261121c',
-      'data.js': '20261119e',
-      'game.js': '20261119e',
-      '../assets/gate.js': '20261121a',
-      '../assets/unit-score.js': '20261119e'
+      '../assets/subject.css': '20261121d',
+      '../assets/subject-play.js': '20261121d',
+      '../assets/reward-approve.js': '20261121d',
+      'data.js': '20261121d',
+      'game.js': '20261121d',
+      '../assets/gate.js': '20261121d',
+      '../assets/unit-score.js': '20261121d'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), dir + ' ' + file);
@@ -943,11 +1001,12 @@ function testRewardApproval() {
   assert.ok(!parentJs.includes('deleteDoc(fb.doc(fb.db, \'users\', uid, \'approvals\''));
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34', 'math-u6', 'chinese-u3', 'parent'].forEach(dir => {
     const html = fs.readFileSync(path.join(root, dir, 'index.html'), 'utf8');
-    assert.ok(html.includes('reward-approve.js?v=20261121c'), dir);
+    assert.ok(html.includes('reward-approve.js?v=20261121d'), dir);
     assert.ok(!html.includes('爸爸簽名'), dir);
   });
 }
 
+testPartialRestartDoesNotBecomeLastRun();
 testNewSubjects();
 testRewardApproval();
 testLevelMarkAndReview();
@@ -964,3 +1023,5 @@ testResetGenerationDropsStaleAttempts();
 testExamBestAndSwitchMinutes();
 testLoginAccountAndRules();
 console.log('unit-score tests passed');
+require('./option-length.js').main();
+require('./fact-unique.js').main();
