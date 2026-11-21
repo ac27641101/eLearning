@@ -180,7 +180,7 @@ function testCopyAndSubjectLinks() {
     assert.ok(html.includes('id="homeBtn"'), unit);
     const versions = {
       '../assets/gate.js': '20261121a',
-      'style.css': '20261119c',
+      'style.css': '20261121b',
       '../assets/unit-score.js': '20261119c',
       '../assets/reward-approve.js': '20261121a',
       'data.js': '20261119c',
@@ -638,7 +638,7 @@ function testNewSubjects() {
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
     const versions = {
-      '../assets/subject.css': '20261119e',
+      '../assets/subject.css': '20261121b',
       '../assets/subject-play.js': '20261121a',
       '../assets/reward-approve.js': '20261121a',
       'data.js': '20261119e',
