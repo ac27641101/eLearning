@@ -3,6 +3,11 @@ rules_version = '2';
 // 家長信箱可以讀全部 users/**，也可以寫（重置小單元）。
 // 家長不能把自己寫成 role:child，所以不會出現在孩子清單。
 // 孩子不能把計分次數變少，也不能把 rev 改掉（家長重置會把 rev 加 1）。
+// 兌換券核准寫在 users/{孩子}/approvals/{chapter__unitId__reward1|reward2}。
+// 一個小單元最多 60 分鐘：reward1 是 30 分鐘，而且當時還沒有 reward2。
+// reward2 在沒有 reward1 時是 60 分鐘；reward1 已經核准時，reward2 是補 30 分鐘。
+// 只有家長登入的那次請求可以新增，而且孩子的成績單必須已經拿到那一階。
+// 核准之後不能改、不能刪，孩子和家長都只能讀。
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -152,6 +157,61 @@ service cloud.firestore {
         && request.resource.data.updatedAt.size() < 40;
     }
 
+    function approverNameOk() {
+      return request.resource.data.approverName is string
+        && (
+          (request.auth.token.email == 'smc@kids.local' && request.resource.data.approverName == 'smc')
+          || (request.auth.token.email == 'ac27641101@gmail.com' && request.resource.data.approverName == '家長')
+        );
+    }
+    function approvalDoc(uid, chapter, unitId, tier) {
+      return /databases/$(database)/documents/users/$(uid)/approvals/$(chapter + '__' + unitId + '__' + tier);
+    }
+    function earnedFromScore(score, data) {
+      return score.scores is list
+        && score.rewards is map
+        && (
+          (data.tier == 'reward1' && data.minutes == 30 && maxOf(score.scores) >= 26 && 'reward1' in score.rewards)
+          || (data.tier == 'reward2' && (data.minutes == 30 || data.minutes == 60) && maxOf(score.scores) >= 30 && 'reward2' in score.rewards)
+        );
+    }
+    function minutesPairOk(uid, data) {
+      let reward1Path = approvalDoc(uid, data.chapter, data.unitId, 'reward1');
+      let reward2Path = approvalDoc(uid, data.chapter, data.unitId, 'reward2');
+      return (data.tier == 'reward1' && data.minutes == 30 && !exists(reward2Path))
+        || (data.tier == 'reward2' && data.minutes == 60 && !exists(reward1Path))
+        || (data.tier == 'reward2' && data.minutes == 30 && exists(reward1Path));
+    }
+    function childEarnedTier(uid, data) {
+      let scoreId = data.chapter + '__' + data.unitId;
+      let path = /databases/$(database)/documents/users/$(uid)/scores/$(scoreId);
+      return exists(path) && earnedFromScore(get(path).data, data);
+    }
+    function validApproval(uid, approvalId) {
+      return request.resource.data.keys().hasAll(['approvedBy', 'approverName', 'approvedAt', 'minutes', 'chapter', 'unitId', 'tier', 'unitName'])
+        && request.resource.data.keys().hasOnly(['approvedBy', 'approverName', 'approvedAt', 'minutes', 'chapter', 'unitId', 'tier', 'unitName'])
+        && request.resource.data.approvedBy == request.auth.uid
+        && approverNameOk()
+        && request.resource.data.approvedAt == request.time
+        && request.resource.data.minutes is int
+        && request.resource.data.chapter is string
+        && request.resource.data.unitId is string
+        && request.resource.data.tier is string
+        && request.resource.data.unitName is string
+        && request.resource.data.chapter.size() > 0
+        && request.resource.data.chapter.size() < 40
+        && request.resource.data.unitId.size() > 0
+        && request.resource.data.unitId.size() < 60
+        && request.resource.data.unitName.size() > 0
+        && request.resource.data.unitName.size() < 80
+        && request.resource.data.chapter.matches('^[A-Za-z0-9_-]+$')
+        && request.resource.data.unitId.matches('^[A-Za-z0-9_-]+$')
+        && (request.resource.data.tier == 'reward1' || request.resource.data.tier == 'reward2')
+        && approvalId == request.resource.data.chapter + '__' + request.resource.data.unitId + '__' + request.resource.data.tier
+        && minutesPairOk(uid, request.resource.data)
+        && childEarnedTier(uid, request.resource.data);
+    }
+
     match /users/{uid} {
       allow get: if isOwner(uid) || isParent();
       allow list: if isParent();
@@ -168,6 +228,12 @@ service cloud.firestore {
         allow get, list: if isOwner(uid) || isParent();
         allow create, update: if (isOwner(uid) || isParent()) && validReview(reviewId);
         allow delete: if isParent();
+      }
+
+      match /approvals/{approvalId} {
+        allow get, list: if isOwner(uid) || isParent();
+        allow create: if isParent() && validApproval(uid, approvalId);
+        allow update, delete: if false;
       }
     }
 

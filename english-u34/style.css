@@ -216,7 +216,7 @@ body.reward-open{overflow:hidden}
 }
 .reward-overlay{position:fixed;inset:0;z-index:120;display:flex;align-items:safe center;justify-content:center;overflow:auto;padding:18px 12px 24px;background:rgba(20,32,48,.55)}
 .reward-sheet{width:min(680px,100%);display:flex;flex-direction:column;align-items:center;gap:10px}
-.reward-tip{margin:0;color:#fff;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.45);font-size:15px}
+.reward-tip{margin:0;max-width:min(560px,100%);padding:8px 14px;color:#3a2a14;background:#fff8e6;border:3px solid #232323;border-radius:12px;text-align:center;font-size:15px;line-height:1.45;box-shadow:0 3px 0 rgba(0,0,0,.35)}
 .reward-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:min(420px,100%)}
 .ticket{display:flex;width:100%;background:var(--paper);overflow:hidden;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .ticket.gold{background:radial-gradient(circle at 18% 12%,rgba(255,255,255,.75),transparent 26%),linear-gradient(180deg,#fff8dc,#ffcf3f)}

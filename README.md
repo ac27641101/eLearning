@@ -8,6 +8,17 @@
 
 進站後先選科目（國語、數學、社會、自然、英文）。還沒有單元的科目仍會出現，上面寫「尚未開放」。點進科目後才看到單元，可以回到科目清單。
 
+章節資料夾名稱和小單元 id 寫進雲端之後就不能改。
+
+- 國語
+  - [五上國語・第參單元](chinese-u3/)（`chinese-u3`：`ch7`、`ch8`、`ch9`）
+  - [五上國語・第肆單元　平凡中的特別](chinese-u4/)（`chinese-u4`：`ch10`、`ch11`、`ch12`）
+- 數學
+  - [五上數學 U6・異分母分數的加減](math-u6/)（`math-u6`：`6-1`、`6-2`、`6-3`）
+  - [五上數學 U7・線對稱圖形](math-u7/)（`math-u7`：`7-1`、`7-2`、`7-3`）
+  - [五上數學 U8・整數四則運算](math-u8/)（`math-u8`：`8-1`、`8-2`、`8-3`、`8-4`）
+  - [五上數學 U9・面積](math-u9/)（`math-u9`：`9-1`、`9-2`、`9-3`、`9-4`）
+  - [五上數學 U10・柱體、錐體和球](math-u10/)（`math-u10`：`10-1`、`10-2`、`10-3`、`10-5`）
 - 社會
   - [五上社會 CH3・臺灣的物產資源](social-ch3/)
   - [五上社會 CH4・看見福爾摩沙](social-g5/)
@@ -39,7 +50,7 @@
 
 ## 家長頁
 
-家長登入後，從學習島進 [家長頁](parent/)。每個孩子會列出社會、自然、英文的每個小單元：最好星星 / 30、已用次數 / 3、Switch 分鐘（0、30 或 60），以及這個孩子總共得到的 Switch 分鐘。英文模擬考如果有考卷分數，會顯示最好成績 / 100。
+家長登入後，從學習島進 [家長頁](parent/)。每個孩子會列出國語、數學、社會、自然、英文的每個小單元：最好星星 / 30、已用次數 / 3、Switch 分鐘（0、30 或 60），錯題，以及這個孩子總共得到的 Switch 分鐘。英文模擬考如果有考卷分數，會顯示最好成績 / 100。
 
 26 顆星是 30 分鐘，30 顆星是 60 分鐘。每個小單元分開算，再把分鐘加總。
 
@@ -62,7 +73,7 @@ Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前是 `?v=20261120a`，社會第三單元這次是 `?v=20261120d`），包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組（目前全部是 `?v=20261121d`），包含 `gate.js`、`unit-score.js`、`reward-approve.js`、`hub.js`、`hub.css`、`subject.css`、`subject-play.js`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 
@@ -71,6 +82,7 @@ GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面
 - 一個小單元有 4 關、30 題。答對 1 題得 1 顆星，最多 30 顆星。
 - 最好成績達到 26 顆星：可以玩 Nintendo Switch 30 分鐘。
 - 最好成績 30 顆星：再得到一張黃金卡，可以玩 Nintendo Switch 60 分鐘。
+- 兌換券上的「父母簽名」可以點。父母輸入自己的帳號密碼之後，兌換券變成已核准，並寫下時間。孩子不會被登出。核准之後不能取消，這張券也不能再使用。家長頁看得到每一張核准紀錄。星星和計分次數不會因為核准而改變。
 - 每個小單元只有前 3 次「四關都玩完」會計分，留下最好的一次。
 - 玩到一半離開，不算一次，也不會先鎖住這次的分數。可以接著玩，或整次重來。
 - 3 次用完還可以練習。題目一樣，順序會變，但不會改星星、次數或獎勵日期。
@@ -88,3 +100,17 @@ GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面
 - [自然 CH4・60 分鐘](https://ac27641101.github.io/eLearning/science-ch4/?preview=reward2)
 - [英文 Unit 3–4・30 分鐘](https://ac27641101.github.io/eLearning/english-u34/?preview=reward1)
 - [英文 Unit 3–4・60 分鐘](https://ac27641101.github.io/eLearning/english-u34/?preview=reward2)
+- [國語第參單元・30 分鐘](https://ac27641101.github.io/eLearning/chinese-u3/?preview=reward1)
+- [國語第參單元・60 分鐘](https://ac27641101.github.io/eLearning/chinese-u3/?preview=reward2)
+- [國語第肆單元・30 分鐘](https://ac27641101.github.io/eLearning/chinese-u4/?preview=reward1)
+- [國語第肆單元・60 分鐘](https://ac27641101.github.io/eLearning/chinese-u4/?preview=reward2)
+- [數學 U6・30 分鐘](https://ac27641101.github.io/eLearning/math-u6/?preview=reward1)
+- [數學 U6・60 分鐘](https://ac27641101.github.io/eLearning/math-u6/?preview=reward2)
+- [數學 U7・30 分鐘](https://ac27641101.github.io/eLearning/math-u7/?preview=reward1)
+- [數學 U7・60 分鐘](https://ac27641101.github.io/eLearning/math-u7/?preview=reward2)
+- [數學 U8・30 分鐘](https://ac27641101.github.io/eLearning/math-u8/?preview=reward1)
+- [數學 U8・60 分鐘](https://ac27641101.github.io/eLearning/math-u8/?preview=reward2)
+- [數學 U9・30 分鐘](https://ac27641101.github.io/eLearning/math-u9/?preview=reward1)
+- [數學 U9・60 分鐘](https://ac27641101.github.io/eLearning/math-u9/?preview=reward2)
+- [數學 U10・30 分鐘](https://ac27641101.github.io/eLearning/math-u10/?preview=reward1)
+- [數學 U10・60 分鐘](https://ac27641101.github.io/eLearning/math-u10/?preview=reward2)

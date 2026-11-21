@@ -136,12 +136,14 @@ function controllerSVG(){
     <circle class="pad-d" cx="54" cy="20" r="2.4"/>
   </svg>`;
 }
-function rewardCardHTML(meta, unitName, iso, preview){
+function rewardCardHTML(meta, unitName, iso, preview, approval){
   const gold = meta.tier === 'gold';
   const dateLine = preview
     ? '預覽，不會記成已獲得'
     : (iso ? S.formatDate(iso) : '');
-  return `<article class="ticket px${gold ? ' gold' : ''}">
+  const decor = ELApprove.voucherDecor(approval, preview);
+  return `<article class="ticket px${gold ? ' gold' : ''}${decor.used ? ' used' : ''}">
+    ${decor.stamp}
     <div class="ticket-stub">
       <span class="stub-kicker">${meta.kicker}</span>
       ${controllerSVG()}
@@ -155,8 +157,7 @@ function rewardCardHTML(meta, unitName, iso, preview){
       <p class="ticket-redeem">${meta.redeem}</p>
       <p class="ticket-honor">稱號：${HONOR[meta.id]}</p>
       <p class="ticket-date">${preview ? dateLine : '獲得日期：<time datetime="' + S.escapeHtml(iso) + '">' + dateLine + '</time>'}</p>
-      <div class="sign-row"><span>爸爸簽名</span><i></i></div>
-      <div class="sign-row"><span>兌換日期</span><i></i></div>
+      ${decor.foot}
     </div>
   </article>`;
 }
@@ -167,11 +168,21 @@ function showRewardCard(meta, opts){
   const st = (!preview && curUnit) ? loadScore(curUnit) : null;
   const iso = preview ? '' : (st && st.rewards[meta.id]) || '';
   if (preview) S.previewView(S.todayISO());
-  $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview);
+  const approval = (!preview && curUnit) ? ELApprove.cached(CHAPTER, curUnit.id, meta.id) : null;
+  $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview, approval);
+  ELApprove.attach($('rewardCard'), {
+    chapter: CHAPTER,
+    unitId: curUnit ? curUnit.id : '',
+    unitName: unitName,
+    rewardId: meta.id,
+    minutes: meta.minutes,
+    preview: preview,
+    approval: approval
+  });
   $('rewardOverlay').hidden = false;
   document.body.classList.add('reward-open');
   const tip = $('rewardTip');
-  if (tip) tip.textContent = preview ? '這是預覽，不會幫孩子解鎖。' : '把這張卡給爸爸看，或列印下來兌換。';
+  if (tip) tip.textContent = ELApprove.tipText(preview, approval);
   if (opts && opts.celebrate){
     confetti();
     if (meta.tier === 'gold') confetti();
@@ -217,19 +228,20 @@ function renderRewards(u){
   if (restart) restart.hidden = S.isPractice(st) || !st.run;
   const list = $('rewardList');
   list.replaceChildren();
-  S.REWARD_META.forEach(meta => {
-    const got = S.earned(st, meta.id);
+  ELApprove.offersFor(st, CHAPTER, u.id).forEach(offer => {
+    const meta = ELApprove.cardMeta(offer);
+    const got = !offer.locked;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'peek-row' + (meta.tier === 'gold' ? ' gold' : '') + (got ? ' unlocked' : ' locked');
-    btn.dataset.reward = meta.id;
-    btn.setAttribute('aria-label', got ? meta.title + '，已解鎖，點開查看' : meta.title + '，還沒解鎖');
+    btn.dataset.reward = meta.id + (offer.topup ? '-topup' : '');
+    btn.setAttribute('aria-label', meta.title + (offer.approval ? '，已核准' : (got ? '，已解鎖，點開查看' : '，還沒解鎖')));
     btn.innerHTML = `<span class="peek-ico" aria-hidden="true">${controllerSVG()}</span>
-      <span class="peek-title">${meta.short}</span>` + (got
-      ? `<span class="peek-open">點開</span>`
-      : `<span class="peek-lock" aria-hidden="true">🔒</span>`);
+      <span class="peek-title">${meta.short}</span>` + (offer.approval
+      ? `<span class="peek-open">已核准</span>`
+      : (got ? `<span class="peek-open">點開</span>` : `<span class="peek-lock" aria-hidden="true">🔒</span>`));
     btn.addEventListener('click', () => {
-      if (!S.earned(loadScore(u), meta.id)){
+      if (offer.locked){
         const left = S.hintText(S.best(loadScore(u)));
         toast(left ? '🔒 ' + left : '再努力一下就解鎖囉！');
         Sound.bad();
@@ -395,9 +407,8 @@ async function finishLevel(){
   if (curLevel.recap) html += `<div class="explain" style="margin-top:10px;text-align:left">📌 ${curLevel.recap}</div>`;
   const v = await showModal({icon: stars ? '🎉' : '💪', title: game.practice ? '練習結束' : '這一關玩完了', center: true,
     html, buttons: btns});
-  for (const id of result.unlocked){
-    const meta = S.rewardMeta(id);
-    if (meta) await showRewardCard(meta, {celebrate: true, unitName: curUnit.name});
+  for (const offer of ELApprove.celebrateOffers(result.unlocked, after, CHAPTER, curUnit.id)){
+    await showRewardCard(ELApprove.cardMeta(offer), {celebrate: true, unitName: curUnit.name});
   }
   if (v === 'again') startLevel(curLevel);
   else if (v === 'next') startLevel(next);
@@ -640,6 +651,7 @@ function refreshAfterScores(){
   else renderLobby();
 }
 document.addEventListener('el-scores-ready', refreshAfterScores);
+document.addEventListener('el-approvals-ready', refreshAfterScores);
 document.addEventListener('el-scores-updated', refreshAfterScores);
 if (window.ELScoresReady) refreshAfterScores();
 {

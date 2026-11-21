@@ -1,4 +1,5 @@
-/* 家長頁：列出每個孩子的小單元星星、次數、Switch 分鐘，以及英文模擬考 /100。 */
+/* 家長頁：列出每個孩子的小單元星星、次數、Switch 分鐘，以及英文模擬考 /100。
+   已核准的兌換券另外列在每個孩子下面。星星換到的分鐘維持原樣，不改成核准分鐘。 */
 (function () {
   'use strict';
 
@@ -8,6 +9,82 @@
   ];
 
   var CATALOG = [
+    {
+      subject: '國語',
+      chapters: [
+        {
+          chapter: 'chinese-u3',
+          name: '五上國語・第參單元',
+          units: [
+            { id: 'ch7', name: '第七課 美景閒情——詩兩首' },
+            { id: 'ch8', name: '第八課 葫蘆瓜' },
+            { id: 'ch9', name: '第九課 窗邊的鳴聲' }
+          ]
+        },
+        {
+          chapter: 'chinese-u4',
+          name: '五上國語・第肆單元　平凡中的特別',
+          units: [
+            { id: 'ch10', name: '第十課 敏銳觀察' },
+            { id: 'ch11', name: '第十一課 你一定會聽見的' },
+            { id: 'ch12', name: '第十二課 藍色連身裙' }
+          ]
+        }
+      ]
+    },
+    {
+      subject: '數學',
+      chapters: [
+        {
+          chapter: 'math-u6',
+          name: '五上數學 U6・異分母分數的加減',
+          units: [
+            { id: '6-1', name: '6-1 異分母分數的加法' },
+            { id: '6-2', name: '6-2 異分母分數的減法' },
+            { id: '6-3', name: '6-3 分數的應用' }
+          ]
+        },
+        {
+          chapter: 'math-u7',
+          name: '五上數學 U7・線對稱圖形',
+          units: [
+            { id: '7-1', name: '7-1 認識線對稱圖形' },
+            { id: '7-2', name: '7-2 對稱點、對稱邊和對稱角' },
+            { id: '7-3', name: '7-3～7-4 繪製線對稱圖形與應用' }
+          ]
+        },
+        {
+          chapter: 'math-u8',
+          name: '五上數學 U8・整數四則運算',
+          units: [
+            { id: '8-1', name: '8-1 兩步驟連除問題' },
+            { id: '8-2', name: '8-2 多步驟問題' },
+            { id: '8-3', name: '8-3 分配律' },
+            { id: '8-4', name: '8-4 平均問題（含一題多解）' }
+          ]
+        },
+        {
+          chapter: 'math-u9',
+          name: '五上數學 U9・面積',
+          units: [
+            { id: '9-1', name: '9-1 平行四邊形的面積' },
+            { id: '9-2', name: '9-2 三角形的面積' },
+            { id: '9-3', name: '9-3 梯形的面積' },
+            { id: '9-4', name: '9-4 複合圖形的面積' }
+          ]
+        },
+        {
+          chapter: 'math-u10',
+          name: '五上數學 U10・柱體、錐體和球',
+          units: [
+            { id: '10-1', name: '10-1 柱體和錐體的分類與命名' },
+            { id: '10-2', name: '10-2 角柱和角錐的構成要素' },
+            { id: '10-3', name: '10-3～10-4 面與面的關係、柱體和錐體的展開圖' },
+            { id: '10-5', name: '10-5 球' }
+          ]
+        }
+      ]
+    },
     {
       subject: '社會',
       chapters: [
@@ -187,6 +264,10 @@
     if (unit.exam || sum.examBest != null) {
       end += '<span class="stat exam">' + (sum.examBest == null ? '考卷 — / 100' : '考卷 ' + sum.examBest + ' / 100') + '</span>';
     }
+    if (window.ELApprove && child.approvals) {
+      var usedMin = ELApprove.approvedMinutesFor(child.approvals, chapter, unit.id);
+      if (usedMin) end += '<span class="stat used">已核准 ' + usedMin + ' 分鐘</span>';
+    }
     if (child.uid && state && !blank(state)) {
       end += '<button type="button" class="reset-btn" data-uid="' + esc(child.uid) + '" data-chapter="' + esc(chapter) + '" data-unit="' + esc(unit.id) + '" data-name="' + esc(unit.name) + '">重置</button>';
     }
@@ -239,6 +320,7 @@
       return html;
     }
     html += '<p class="total-min">Switch 一共 <b>' + totalMinutes(child) + '</b> 分鐘</p>';
+    if (window.ELApprove) html += ELApprove.parentListHtml(child.approvals || {}, findUnitName);
     if (exams.length) {
       html += '<p class="exam-line">' + exams.map(function (item) {
         return '模擬考最好 ' + item.examBest + ' / 100';
@@ -267,7 +349,7 @@
           window.alert('這是預覽，不會真的清掉。');
           return;
         }
-        var ok = window.confirm('確定要重置「' + name + '」嗎？\n星星、計分次數、Switch 分鐘和模擬考分數都會清成 0，這個小單元可以再計分 3 次。');
+        var ok = window.confirm('確定要重置「' + name + '」嗎？\n星星、計分次數、Switch 分鐘和模擬考分數都會清成 0，這個小單元可以再計分 3 次。已經核准的兌換券不會取消。');
         if (!ok) return;
         var state = scoreOf(child, chapter, unitId) || {};
         var rev = UnitScore.normalize(state).rev + 1;
@@ -327,7 +409,21 @@
           'social-ch3__sugar': pack('social-ch3', 'sugar', [18, 28], { rewards: { reward1: '2026-11-02' } }),
           'science-ch3__u1': pack('science-ch3', 'u1', [30], { rewards: { reward1: '2026-11-03', reward2: '2026-11-03' } }),
           'science-ch4__u2': pack('science-ch4', 'u2', [0, 0, 0]),
-          'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86 })
+          'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86 }),
+          'chinese-u3__ch7': pack('chinese-u3', 'ch7', [26], { rewards: { reward1: '2026-11-08' } }),
+          'math-u6__6-1': pack('math-u6', '6-1', [30], { rewards: { reward1: '2026-11-09', reward2: '2026-11-09' } })
+        },
+        approvals: {
+          'math-u6__6-1__reward2': {
+            approvedBy: 'parent-smc',
+            approverName: 'smc',
+            approvedAt: '2026-11-21T14:30:00.000Z',
+            minutes: 60,
+            chapter: 'math-u6',
+            unitId: '6-1',
+            tier: 'reward2',
+            unitName: '6-1 異分母分數的加法'
+          }
         },
         reviews: {
           'social-ch3__sugar': {
@@ -338,6 +434,17 @@
                 stars: 6, max: 8,
                 lastRunStars: 6, lastRunMax: 8,
                 wrong: [{ q: '虎尾鎮有「糖都」之稱', a: '出口', c: '糖都虎尾' }],
+                at: '2026-11-18'
+              }
+            }
+          },
+          'chinese-u3__ch7': {
+            chapter: 'chinese-u3',
+            unitId: 'ch7',
+            levels: {
+              hand: {
+                stars: 6, max: 8,
+                wrong: [{ q: '剛「ㄈㄢˇ」家的爸爸想帶全家去露營。括號裡的注音是哪個字？', a: '飯', c: '返' }],
                 at: '2026-11-18'
               }
             }
@@ -457,7 +564,8 @@
           account: data.account || '',
           email: data.email || '',
           scores: {},
-          reviews: {}
+          reviews: {},
+          approvals: {}
         });
       });
       return Promise.all(profiles.map(function (profile) {
@@ -477,7 +585,12 @@
               var unitId = data.unitId || parts.slice(1).join('__');
               profile.reviews[chapter + '__' + unitId] = data;
             });
-            return profile;
+            return fb.getDocs(fb.collection(fb.db, 'users', profile.uid, 'approvals')).then(function (approvals) {
+              approvals.forEach(function (approvalSnap) {
+                profile.approvals[approvalSnap.id] = approvalSnap.data() || {};
+              });
+              return profile;
+            }).catch(function () { return profile; });
           }).catch(function () { return profile; });
         });
       }));
