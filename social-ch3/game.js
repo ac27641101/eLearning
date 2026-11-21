@@ -148,12 +148,14 @@ function controllerSVG(){
     <circle class="pad-d" cx="54" cy="20" r="2.4"/>
   </svg>`;
 }
-function rewardCardHTML(meta, unitName, iso, preview){
+function rewardCardHTML(meta, unitName, iso, preview, approval){
   const gold = meta.tier === 'gold';
   const dateLine = preview
     ? '預覽，不會記成已獲得'
     : (iso ? S.formatDate(iso) : '');
-  return `<article class="ticket px${gold ? ' gold' : ''}">
+  const decor = ELApprove.voucherDecor(approval, preview);
+  return `<article class="ticket px${gold ? ' gold' : ''}${decor.used ? ' used' : ''}">
+    ${decor.stamp}
     <div class="ticket-stub">
       <span class="stub-kicker">${meta.kicker}</span>
       ${controllerSVG()}
@@ -167,8 +169,7 @@ function rewardCardHTML(meta, unitName, iso, preview){
       <p class="ticket-redeem">${meta.redeem}</p>
       <p class="ticket-honor">稱號：${HONOR[meta.id]}</p>
       <p class="ticket-date">${preview ? dateLine : '獲得日期：<time datetime="' + S.escapeHtml(iso) + '">' + dateLine + '</time>'}</p>
-      <div class="sign-row"><span>爸爸簽名</span><i></i></div>
-      <div class="sign-row"><span>兌換日期</span><i></i></div>
+      ${decor.foot}
     </div>
   </article>`;
 }
@@ -179,11 +180,21 @@ function showRewardCard(meta, opts){
   const st = (!preview && curUnit) ? loadScore(curUnit) : null;
   const iso = preview ? '' : (st && st.rewards[meta.id]) || '';
   if (preview) S.previewView(S.todayISO());
-  $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview);
+  const approval = (!preview && curUnit) ? ELApprove.cached(CHAPTER, curUnit.id, meta.id) : null;
+  $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview, approval);
+  ELApprove.attach($('rewardCard'), {
+    chapter: CHAPTER,
+    unitId: curUnit ? curUnit.id : '',
+    unitName: unitName,
+    rewardId: meta.id,
+    minutes: meta.minutes,
+    preview: preview,
+    approval: approval
+  });
   $('rewardOverlay').hidden = false;
   document.body.classList.add('reward-open');
   const tip = $('rewardTip');
-  if (tip) tip.textContent = preview ? '這是預覽，不會幫孩子解鎖。' : '把這張卡給爸爸看，或列印下來兌換。';
+  if (tip) tip.textContent = ELApprove.tipText(preview, approval);
   if (opts && opts.celebrate){
     confetti();
     if (meta.tier === 'gold') confetti();

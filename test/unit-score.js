@@ -178,9 +178,20 @@ function testCopyAndSubjectLinks() {
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
-    ['../assets/gate.js', 'style.css', '../assets/unit-score.js', 'data.js', 'game.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261119c'), unit + ' ' + file);
+    const versions = {
+      '../assets/gate.js': '20261121a',
+      'style.css': '20261119c',
+      '../assets/unit-score.js': '20261119c',
+      '../assets/reward-approve.js': '20261121a',
+      'data.js': '20261119c',
+      'game.js': '20261121a'
+    };
+    Object.keys(versions).forEach(file => {
+      assert.ok(html.includes(file + '?v=' + versions[file]), unit + ' ' + file);
     });
+    assert.ok(js.includes('ELApprove.voucherDecor'), unit);
+    assert.ok(js.includes('ELApprove.attach'), unit);
+    assert.ok(!js.includes('爸爸簽名'), unit);
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
     ['social', 'science', 'english'].forEach(s => {
@@ -233,11 +244,12 @@ function testCopyAndSubjectLinks() {
   assert.ok(hub.includes('showSubjects();'));
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
-  ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
+  assert.ok(hubPage.includes('assets/gate.js?v=20261121a'), 'hub gate');
+  ['assets/hub.css', 'assets/hub.js'].forEach(file => {
     assert.ok(hubPage.includes(file + '?v=20261119e'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261119c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261121a') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -249,7 +261,11 @@ function testCopyAndSubjectLinks() {
   const english = fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8');
   assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
-  ['../assets/gate.js', '../assets/hub.css', 'parent.css', '../assets/unit-score.js', 'parent.js'].forEach(file => {
+  assert.ok(parentPage.includes('../assets/gate.js?v=20261121a'), 'parent gate');
+  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261121a'), 'parent approve');
+  assert.ok(parentPage.includes('parent.css?v=20261121a'), 'parent css');
+  assert.ok(parentPage.includes('parent.js?v=20261121a'), 'parent js');
+  ['../assets/hub.css', '../assets/unit-score.js'].forEach(file => {
     assert.ok(parentPage.includes(file + '?v=20261119d'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
@@ -621,8 +637,17 @@ function testNewSubjects() {
     assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>'), dir);
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
-    ['../assets/subject.css', '../assets/subject-play.js', 'data.js', 'game.js', '../assets/gate.js', '../assets/unit-score.js'].forEach(file => {
-      assert.ok(html.includes(file + '?v=20261119e'), dir + ' ' + file);
+    const versions = {
+      '../assets/subject.css': '20261119e',
+      '../assets/subject-play.js': '20261121a',
+      '../assets/reward-approve.js': '20261121a',
+      'data.js': '20261119e',
+      'game.js': '20261119e',
+      '../assets/gate.js': '20261121a',
+      '../assets/unit-score.js': '20261119e'
+    };
+    Object.keys(versions).forEach(file => {
+      assert.ok(html.includes(file + '?v=' + versions[file]), dir + ' ' + file);
     });
     assert.ok(game.includes('"chapter": "' + dir + '"'), dir);
     assert.ok(hub.includes("href: '" + dir + "/'"), dir);
@@ -704,9 +729,173 @@ function testNewSubjects() {
   assert.ok(parentJs.includes('第七課 美景閒情——詩兩首'));
   assert.ok(parentJs.includes('10-5 球'));
   assert.ok(parentJs.includes('7-3～7-4 繪製線對稱圖形與應用'));
+  assert.ok(play.includes('ELApprove.voucherDecor'));
+  assert.ok(play.includes('ELApprove.attach'));
+  assert.ok(!play.includes('爸爸簽名'));
+}
+
+function testRewardApproval() {
+  require(path.join(root, 'assets/gate.js'));
+  require(path.join(root, 'assets/reward-approve.js'));
+  const A = global.ELAccount;
+  const R = global.ELApprove;
+  assert.strictEqual(A.firebaseConfig.projectId, 'elearning-6448b');
+  assert.strictEqual(R.approvalId('math-u6', '6-1', 'reward1'), 'math-u6__6-1__reward1');
+  assert.strictEqual(R.approvalId('social-ch3', 'sugar', 'reward2'), 'social-ch3__sugar__reward2');
+  assert.strictEqual(R.minutesFor('reward1'), 30);
+  assert.strictEqual(R.minutesFor('reward2'), 60);
+  assert.strictEqual(R.minutesFor('reward3'), 0);
+
+  const low = { scores: [25], rewards: { reward1: '2026-11-01' }, run: null };
+  assert.strictEqual(R.tierEarned(low, 'reward1'), false);
+  const star = { scores: [26], rewards: { reward1: '2026-11-01' }, run: null };
+  assert.strictEqual(R.tierEarned(star, 'reward1'), true);
+  assert.strictEqual(R.tierEarned(star, 'reward2'), false);
+  const goldStars = { scores: [30], rewards: {}, run: null };
+  assert.strictEqual(R.tierEarned(goldStars, 'reward2'), false);
+  const gold = { scores: [18, 30], rewards: { reward1: '2026-11-01', reward2: '2026-11-02' }, run: null };
+  assert.strictEqual(R.tierEarned(gold, 'reward1'), true);
+  assert.strictEqual(R.tierEarned(gold, 'reward2'), true);
+  assert.strictEqual(S.switchMinutes(gold), 60);
+
+  assert.strictEqual(R.formatTaipei('2026-11-21T14:30:00.000Z'), '2026/11/21 22:30');
+  assert.strictEqual(R.formatTaipei({ seconds: Date.parse('2026-11-21T14:30:00.000Z') / 1000 }), '2026/11/21 22:30');
+  assert.strictEqual(R.formatTaipei(''), '');
+
+  const open = R.voucherDecor(null, false);
+  assert.ok(open.foot.includes('父母簽名'));
+  assert.ok(open.foot.includes('class="sign-line"'));
+  assert.ok(open.foot.includes('點這裡請父母簽名'));
+  assert.ok(!open.stamp);
+  assert.strictEqual(open.used, false);
+  const preview = R.voucherDecor(null, true);
+  assert.ok(preview.foot.includes('父母簽名'));
+  assert.ok(preview.foot.includes('<i></i>'));
+  assert.ok(!preview.foot.includes('sign-line'));
+  const signed = {
+    id: 'math-u6__6-1__reward2',
+    approverName: 'smc',
+    approvedAt: '2026-11-21T14:30:00.000Z',
+    minutes: 60,
+    chapter: 'math-u6',
+    unitId: '6-1',
+    tier: 'reward2',
+    unitName: '6-1 異分母分數的加法'
+  };
+  const used = R.voucherDecor(signed, false);
+  assert.strictEqual(used.used, true);
+  assert.ok(used.stamp.includes('APPROVED'));
+  assert.ok(used.stamp.includes('已核准'));
+  assert.ok(used.stamp.includes('smc'));
+  assert.ok(used.stamp.includes('2026/11/21 22:30'));
+  assert.ok(used.foot.includes('已使用'));
+  assert.ok(used.foot.includes('2026/11/21 22:30'));
+  assert.ok(!used.foot.includes('sign-line'));
+  assert.ok(!used.foot.includes('<button'));
+  const nasty = R.voucherDecor(Object.assign({}, signed, { approverName: '<script>' }), false);
+  assert.ok(nasty.stamp.includes('&lt;script&gt;'));
+  assert.ok(!nasty.stamp.includes('<script>'));
+
+  const smc = A.profileFromUser({ uid: 'smc-uid', email: 'smc@kids.local' });
+  const mom = A.profileFromUser({ uid: 'mom-uid', email: 'ac27641101@gmail.com' });
+  const ysc = A.profileFromUser({ uid: 'ysc-uid', email: 'ysc@kids.local' });
+  assert.strictEqual(R.decisionAfterSignIn(smc).ok, true);
+  assert.strictEqual(R.decisionAfterSignIn(mom).ok, true);
+  assert.strictEqual(R.decisionAfterSignIn(ysc).ok, false);
+  assert.strictEqual(R.decisionAfterSignIn(ysc).message, '這個帳號不是家長，不能核准兌換券。');
+  assert.strictEqual(R.failureMessage('auth/wrong-password'), '帳號或密碼不對喔，再試一次吧！');
+  assert.strictEqual(R.failureMessage('auth/invalid-credential'), '帳號或密碼不對喔，再試一次吧！');
+  assert.strictEqual(R.failureMessage('already'), '這張兌換券已經核准過了，不能再用。');
+  const record = R.approvalRecord({
+    chapter: 'math-u6', unitId: '6-1', rewardId: 'reward2', unitName: '6-1 異分母分數的加法'
+  }, smc);
+  assert.deepStrictEqual(Object.keys(record).sort(), [
+    'approvedBy', 'approverName', 'chapter', 'minutes', 'tier', 'unitId', 'unitName'
+  ]);
+  assert.strictEqual(record.approvedBy, 'smc-uid');
+  assert.strictEqual(record.approverName, 'smc');
+  assert.strictEqual(record.minutes, 60);
+  assert.strictEqual(record.tier, 'reward2');
+  assert.ok(!Object.prototype.hasOwnProperty.call(record, 'password'));
+  const momRecord = R.approvalRecord({
+    chapter: 'science-ch3', unitId: 'u1', rewardId: 'reward1', unitName: '水溶液中的物質'
+  }, mom);
+  assert.strictEqual(momRecord.approverName, '家長');
+  assert.strictEqual(momRecord.minutes, 30);
+
+  const bag = {
+    'math-u6__6-1__reward1': Object.assign({}, record, { tier: 'reward1', minutes: 30, approvedAt: '2026-11-21T14:30:00.000Z' }),
+    'math-u6__6-1__reward2': Object.assign({}, record, { approvedAt: '2026-11-21T15:00:00.000Z' }),
+    'science-ch3__u1__reward1': momRecord
+  };
+  bag['science-ch3__u1__reward1'].approvedAt = '2026-11-20T01:00:00.000Z';
+  assert.strictEqual(R.approvedMinutes(bag), 90);
+  assert.strictEqual(R.approvedMinutesFor(bag, 'math-u6', '6-1'), 60);
+  assert.strictEqual(R.approvedMinutesFor(bag, 'science-ch3', 'u1'), 30);
+  const list = R.parentListHtml(bag, (chapter, unitId) => unitId === '6-1' ? '6-1 異分母分數的加法' : '');
+  assert.ok(list.includes('已核准的兌換券'));
+  assert.ok(list.includes('核准之後不能取消'));
+  assert.ok(list.includes('已核准 Switch 一共 <b>90</b> 分鐘'));
+  assert.ok(list.includes('6-1 異分母分數的加法'));
+  assert.ok(list.includes('60 分鐘'));
+  assert.ok(list.includes('smc'));
+  assert.ok(list.includes('家長'));
+  assert.ok(list.includes('2026/11/21 22:30'));
+  assert.ok(list.includes('2026/11/21 23:00'));
+  assert.strictEqual(R.parentListHtml({}, () => ''), R.parentListHtml({}, () => ''));
+  assert.ok(R.parentListHtml({}, () => '').includes('還沒有核准過的兌換券。'));
+  assert.strictEqual(R.tipText(false, null).includes('父母簽名'), true);
+  assert.strictEqual(R.tipText(false, signed), '這張兌換券已經核准，不能再用。');
+  assert.strictEqual(R.tipText(true, null), '這是預覽，不會幫孩子解鎖。');
+
+  const src = fs.readFileSync(path.join(root, 'assets/reward-approve.js'), 'utf8');
+  assert.ok(src.includes("initializeApp(config, 'approver')"));
+  assert.ok(src.includes('inMemoryPersistence'));
+  assert.ok(src.includes('signInWithEmailAndPassword(approverAuth, email, password)'));
+  assert.ok(src.includes('signOut(approverAuth)'));
+  assert.ok(src.includes('serverTimestamp()'));
+  assert.ok(src.includes('passInput.value = \'\''));
+  assert.ok(src.includes('ELAccount.loginEmail'));
+  assert.ok(!src.includes('console.'));
+  assert.ok(!src.includes('localStorage'));
+  assert.ok(!src.includes('sessionStorage'));
+  assert.ok(!src.includes('location.reload'));
+  assert.ok(!src.includes('爸爸簽名'));
+
+  const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
+  const block = rules.slice(rules.indexOf('match /approvals/{approvalId}'));
+  assert.ok(block.includes('allow get, list: if isOwner(uid) || isParent();'));
+  assert.ok(block.includes('allow create: if isParent() && validApproval(uid, approvalId);'));
+  assert.ok(block.includes('allow update, delete: if false;'));
+  assert.ok(!block.includes('allow delete: if isParent()'));
+  assert.ok(rules.includes('function validApproval(uid, approvalId)'));
+  assert.ok(rules.includes('function childEarnedTier(uid, data)'));
+  assert.ok(rules.includes("approvalId == request.resource.data.chapter + '__' + request.resource.data.unitId + '__' + request.resource.data.tier"));
+  assert.ok(rules.includes("request.resource.data.approvedBy == request.auth.uid"));
+  assert.ok(rules.includes('request.resource.data.approvedAt == request.time'));
+  assert.ok(rules.includes("request.auth.token.email == 'smc@kids.local' && request.resource.data.approverName == 'smc'"));
+  assert.ok(rules.includes("request.auth.token.email == 'ac27641101@gmail.com' && request.resource.data.approverName == '家長'"));
+  assert.ok(rules.includes("data.tier == 'reward1' && data.minutes == 30 && maxOf(score.scores) >= 26"));
+  assert.ok(rules.includes("data.tier == 'reward2' && data.minutes == 60 && maxOf(score.scores) >= 30"));
+  assert.strictEqual(A.displayName('smc', 'parent'), 'smc');
+  assert.strictEqual(A.displayName('ac27641101@gmail.com', 'parent'), '家長');
+
+  const parentJs = fs.readFileSync(path.join(root, 'parent/parent.js'), 'utf8');
+  assert.ok(parentJs.includes('ELApprove.parentListHtml'));
+  assert.ok(parentJs.includes('ELApprove.approvedMinutesFor'));
+  assert.ok(parentJs.includes("fb.collection(fb.db, 'users', profile.uid, 'approvals')"));
+  assert.ok(parentJs.includes('function familySwitchMinutes'));
+  assert.ok(parentJs.includes('function totalMinutes'));
+  assert.ok(!parentJs.includes('deleteDoc(fb.doc(fb.db, \'users\', uid, \'approvals\''));
+  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34', 'math-u6', 'chinese-u3', 'parent'].forEach(dir => {
+    const html = fs.readFileSync(path.join(root, dir, 'index.html'), 'utf8');
+    assert.ok(html.includes('reward-approve.js?v=20261121a'), dir);
+    assert.ok(!html.includes('爸爸簽名'), dir);
+  });
 }
 
 testNewSubjects();
+testRewardApproval();
 testLevelMarkAndReview();
 testThreeScoresStayUsed();
 testOneScoreLeavesTwoChances();

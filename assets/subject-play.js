@@ -298,10 +298,11 @@
   function controllerSVG() {
     return '<svg class="pad" viewBox="0 0 84 54" aria-hidden="true" focusable="false"><rect class="pad-l" x="1" y="18" width="18" height="32" rx="6"/><rect class="pad-r" x="65" y="18" width="18" height="32" rx="6"/><rect class="pad-body" x="16" y="4" width="52" height="36" rx="6"/><rect class="pad-screen" x="30" y="10" width="24" height="16" rx="2"/><path class="pad-ink" d="M22 24h5v-5h4v5h5v4h-5v5h-4v-5h-5z"/><circle class="pad-a" cx="60" cy="14" r="2.4"/><circle class="pad-b" cx="66" cy="20" r="2.4"/><circle class="pad-c" cx="60" cy="26" r="2.4"/><circle class="pad-d" cx="54" cy="20" r="2.4"/></svg>';
   }
-  function rewardCardHTML(meta, unitName, iso, preview) {
+  function rewardCardHTML(meta, unitName, iso, preview, approval) {
     const gold = meta.tier === 'gold';
     const dateLine = preview ? '預覽，不會記成已獲得' : (iso ? S.formatDate(iso) : '');
-    return '<article class="ticket px' + (gold ? ' gold' : '') + '"><div class="ticket-stub"><span class="stub-kicker">' + meta.kicker + '</span>' + controllerSVG() + '<div class="stub-stars">' + meta.minutes + ' 分</div><div class="stub-word">獎勵卡</div></div><div class="ticket-main"><p class="ticket-unit">' + esc(CFG.rewardUnit) + '・' + esc(unitName) + '</p><h2 id="rewardTitle">' + meta.title + '</h2>' + (gold ? '<div class="gems" aria-hidden="true"><i></i><i></i><i></i></div>' : '') + '<p class="ticket-redeem">' + meta.redeem + '</p><p class="ticket-honor">稱號：' + esc(CFG.honor[meta.id] || '') + '</p><p class="ticket-date">' + (preview ? dateLine : '獲得日期：<time datetime="' + esc(iso) + '">' + dateLine + '</time>') + '</p><div class="sign-row"><span>爸爸簽名</span><i></i></div><div class="sign-row"><span>兌換日期</span><i></i></div></div></article>';
+    const decor = root.ELApprove.voucherDecor(approval, preview);
+    return '<article class="ticket px' + (gold ? ' gold' : '') + (decor.used ? ' used' : '') + '">' + decor.stamp + '<div class="ticket-stub"><span class="stub-kicker">' + meta.kicker + '</span>' + controllerSVG() + '<div class="stub-stars">' + meta.minutes + ' 分</div><div class="stub-word">獎勵卡</div></div><div class="ticket-main"><p class="ticket-unit">' + esc(CFG.rewardUnit) + '・' + esc(unitName) + '</p><h2 id="rewardTitle">' + meta.title + '</h2>' + (gold ? '<div class="gems" aria-hidden="true"><i></i><i></i><i></i></div>' : '') + '<p class="ticket-redeem">' + meta.redeem + '</p><p class="ticket-honor">稱號：' + esc(CFG.honor[meta.id] || '') + '</p><p class="ticket-date">' + (preview ? dateLine : '獲得日期：<time datetime="' + esc(iso) + '">' + dateLine + '</time>') + '</p>' + decor.foot + '</div></article>';
   }
   function showRewardCard(meta, opts) {
     const preview = !!(opts && opts.preview);
@@ -309,11 +310,21 @@
     const st = (!preview && curUnit) ? loadScore(curUnit) : null;
     const iso = preview ? '' : (st && st.rewards[meta.id]) || '';
     if (preview) S.previewView(S.todayISO());
-    $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview);
+    const approval = (!preview && curUnit) ? root.ELApprove.cached(CFG.chapter, curUnit.id, meta.id) : null;
+    $('rewardCard').innerHTML = rewardCardHTML(meta, unitName, iso, preview, approval);
+    root.ELApprove.attach($('rewardCard'), {
+      chapter: CFG.chapter,
+      unitId: curUnit ? curUnit.id : '',
+      unitName: unitName,
+      rewardId: meta.id,
+      minutes: meta.minutes,
+      preview: preview,
+      approval: approval
+    });
     $('rewardOverlay').hidden = false;
     document.body.classList.add('reward-open');
     const tip = $('rewardTip');
-    if (tip) tip.textContent = preview ? '這是預覽，不會幫孩子解鎖。' : '把這張卡給爸爸看，或列印下來兌換。';
+    if (tip) tip.textContent = root.ELApprove.tipText(preview, approval);
     if (opts && opts.celebrate) {
       confetti();
       if (meta.tier === 'gold') confetti();

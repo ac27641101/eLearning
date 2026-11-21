@@ -73,7 +73,7 @@ Email/Password 登入維持開啟。孩子帳號是 `ysc@kids.local`、`ytc@kids
 
 ## 發佈時要換版本
 
-GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組。社會、自然、英文的單元頁目前是 `?v=20261119c`。家長頁是 `?v=20261119d`。學習島，以及國語、數學的頁面是 `?v=20261119e`（含 `gate.js`、`unit-score.js`、`subject.css`、`subject-play.js`）。包含 `gate.js`、`unit-score.js`、`hub.js`、`hub.css`、`data.js`、`game.js`、`style.css`，以及家長頁的 `parent.css`、`parent.js`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
+GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面上本地 `<script>` 和 `<link rel="stylesheet">` 的 `?v=` 換成新的一組。這次父母簽名用的是 `?v=20261121a`（`gate.js`、`reward-approve.js`、`subject-play.js`、有改過的 `game.js`，以及家長頁的 `parent.css`、`parent.js`）。還沒改到的檔案仍是較早的版本：社會、自然、英文的 `style.css`、`data.js`、`unit-score.js` 是 `?v=20261119c`；家長頁的 `hub.css`、`unit-score.js` 是 `?v=20261119d`；學習島的 `hub.css`、`hub.js`，以及國語、數學的 `subject.css`、`data.js`、`unit-score.js` 是 `?v=20261119e`。HTML 重新整理後才會載入新程式；版本沒換時，回單元按鈕可能點了沒反應。
 
 ## 獎勵
 
@@ -82,6 +82,7 @@ GitHub Pages 會把 JS 和 CSS 快取約 10 分鐘。每次發佈都要把頁面
 - 一個小單元有 4 關、30 題。答對 1 題得 1 顆星，最多 30 顆星。
 - 最好成績達到 26 顆星：可以玩 Nintendo Switch 30 分鐘。
 - 最好成績 30 顆星：再得到一張黃金卡，可以玩 Nintendo Switch 60 分鐘。
+- 兌換券上的「父母簽名」可以點。父母輸入自己的帳號密碼之後，兌換券變成已核准，並寫下時間。孩子不會被登出。核准之後不能取消，這張券也不能再使用。家長頁看得到每一張核准紀錄。星星和計分次數不會因為核准而改變。
 - 每個小單元只有前 3 次「四關都玩完」會計分，留下最好的一次。
 - 玩到一半離開，不算一次，也不會先鎖住這次的分數。可以接著玩，或整次重來。
 - 3 次用完還可以練習。題目一樣，順序會變，但不會改星星、次數或獎勵日期。
