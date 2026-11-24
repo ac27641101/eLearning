@@ -23,7 +23,7 @@
         },
         {
           chapter: 'chinese-u4',
-          name: '五上國語・第肆單元　平凡中的特別',
+          name: '第 4 單元・平凡中的特別',
           units: [
             { id: 'ch10', name: '第十課 敏銳觀察' },
             { id: 'ch11', name: '第十一課 你一定會聽見的' },
@@ -37,7 +37,7 @@
       chapters: [
         {
           chapter: 'math-u6',
-          name: '五上數學 U6・異分母分數的加減',
+          name: '第 6 單元・異分母分數的加減',
           units: [
             { id: '6-1', name: '6-1 異分母分數的加法' },
             { id: '6-2', name: '6-2 異分母分數的減法' },
@@ -46,7 +46,7 @@
         },
         {
           chapter: 'math-u7',
-          name: '五上數學 U7・線對稱圖形',
+          name: '第 7 單元・線對稱圖形',
           units: [
             { id: '7-1', name: '7-1 認識線對稱圖形' },
             { id: '7-2', name: '7-2 對稱點、對稱邊和對稱角' },
@@ -55,7 +55,7 @@
         },
         {
           chapter: 'math-u8',
-          name: '五上數學 U8・整數四則運算',
+          name: '第 8 單元・整數四則運算',
           units: [
             { id: '8-1', name: '8-1 兩步驟連除問題' },
             { id: '8-2', name: '8-2 多步驟問題' },
@@ -65,7 +65,7 @@
         },
         {
           chapter: 'math-u9',
-          name: '五上數學 U9・面積',
+          name: '第 9 單元・面積',
           units: [
             { id: '9-1', name: '9-1 平行四邊形的面積' },
             { id: '9-2', name: '9-2 三角形的面積' },
@@ -75,7 +75,7 @@
         },
         {
           chapter: 'math-u10',
-          name: '五上數學 U10・柱體、錐體和球',
+          name: '第 10 單元・柱體、錐體和球',
           units: [
             { id: '10-1', name: '10-1 柱體和錐體的分類與命名' },
             { id: '10-2', name: '10-2 角柱和角錐的構成要素' },
@@ -90,7 +90,7 @@
       chapters: [
         {
           chapter: 'social-ch3',
-          name: '五上社會 CH3・臺灣的物產資源',
+          name: '第 3 單元・臺灣的物產資源',
           units: [
             { id: 'sugar', name: '蔗糖的興起', group: '第1課・豐饒的土地' },
             { id: 'variety', name: '臺灣農業的多樣性', group: '第1課・豐饒的土地' },
@@ -108,7 +108,7 @@
         },
         {
           chapter: 'social-g5',
-          name: '五上社會 CH4・看見福爾摩沙',
+          name: '第 4 單元・看見福爾摩沙',
           units: [
             { id: 'u1', name: '潟湖上的海上貿易' },
             { id: 'u2', name: '大航海時期來臺的人們' },
@@ -123,7 +123,7 @@
       chapters: [
         {
           chapter: 'science-ch3',
-          name: '五上自然 CH3・神奇的水溶液',
+          name: '第 3 單元・神奇的水溶液',
           units: [
             { id: 'u1', name: '水溶液中的物質' },
             { id: 'u2', name: '水溶液的酸鹼性' },
@@ -133,7 +133,7 @@
         },
         {
           chapter: 'science-ch4',
-          name: '五上自然 CH4・力與運動',
+          name: '第 4 單元・力與運動',
           units: [
             { id: 'u1', name: '地球引力' },
             { id: 'u2', name: '力的測量' },
@@ -148,7 +148,7 @@
       chapters: [
         {
           chapter: 'english-u34',
-          name: '五上英文 Unit 3–4 期末複習',
+          name: 'Unit 3–4・期末複習',
           units: [
             { id: 'u3', name: 'Free Time 休閒活動' },
             { id: 'u4', name: 'Daily Routines 作息時間' },
@@ -271,6 +271,7 @@
       if (usedMin) end += '<span class="stat used">已核准 ' + usedMin + ' 分鐘</span>';
     }
     if (child.uid && state && !blank(state)) {
+      end += '<button type="button" class="clear-btn" data-uid="' + esc(child.uid) + '" data-chapter="' + esc(chapter) + '" data-unit="' + esc(unit.id) + '" data-name="' + esc(unit.name) + '">清除星星</button>';
       end += '<button type="button" class="reset-btn" data-uid="' + esc(child.uid) + '" data-chapter="' + esc(chapter) + '" data-unit="' + esc(unit.id) + '" data-name="' + esc(unit.name) + '">重置</button>';
     }
     return '<div class="score-row">' +
@@ -281,18 +282,95 @@
       '<div class="row-end">' + end + '</div></div>' + reviewBlock(reviewOf(child, chapter, unit.id));
   }
 
-  function chapterHtml(child, block) {
-    var html = '<section class="chapter-block"><h4>' + esc(block.name) + '</h4>';
+  function unitPlayed(child, chapter, unit) {
+    var state = scoreOf(child, chapter, unit.id);
+    if (state && !blank(state)) return true;
+    var review = reviewOf(child, chapter, unit.id);
+    return !!(review && review.levels && Object.keys(review.levels).length);
+  }
+
+  function playedStamp(child, chapter, unitId) {
+    var times = [];
+    function push(value) {
+      if (!value) return;
+      var n = Date.parse(value);
+      if (n) times.push(n);
+    }
+    var score = scoreOf(child, chapter, unitId) || {};
+    push(score.updatedAt);
+    var rewards = score.rewards || {};
+    push(rewards.reward1);
+    push(rewards.reward2);
+    var review = reviewOf(child, chapter, unitId) || {};
+    push(review.updatedAt);
+    var levels = review.levels || {};
+    Object.keys(levels).forEach(function (id) { push(levels[id] && levels[id].at); });
+    return times.length ? Math.max.apply(null, times) : 0;
+  }
+
+  function recentUnits(child) {
+    var rows = [];
+    CATALOG.forEach(function (subject) {
+      subject.chapters.forEach(function (block) {
+        block.units.forEach(function (unit) {
+          if (!unitPlayed(child, block.chapter, unit)) return;
+          rows.push({
+            name: block.name + '・' + unit.name,
+            at: playedStamp(child, block.chapter, unit.id)
+          });
+        });
+      });
+    });
+    rows.sort(function (a, b) { return b.at - a.at; });
+    return rows.slice(0, 3);
+  }
+
+  function summaryHtml(child) {
+    var earned = totalMinutes(child);
+    var approved = (window.ELApprove && child.approvals) ? ELApprove.approvedMinutes(child.approvals) : 0;
+    var pending = Math.max(0, earned - approved);
+    var recent = recentUnits(child);
+    var list = recent.length
+      ? recent.map(function (item) { return '<li>' + esc(item.name) + '</li>'; }).join('')
+      : '<li class="quiet">還沒有玩過的小單元。</li>';
+    return '<section class="kid-summary">' +
+      '<p class="sum-line">已獲得 <b>' + earned + '</b> 分鐘</p>' +
+      '<p class="sum-line">已核准 <b>' + approved + '</b> 分鐘</p>' +
+      '<p class="sum-line">待核准 <b>' + pending + '</b> 分鐘</p>' +
+      '<p class="sum-recent">最近玩的小單元</p><ol class="recent-list">' + list + '</ol></section>';
+  }
+
+  function rowsFor(child, block, wantPlayed) {
+    var html = '';
     var lastGroup = '';
     block.units.forEach(function (unit) {
+      var played = unitPlayed(child, block.chapter, unit);
+      if (played !== wantPlayed) return;
       if (unit.group && unit.group !== lastGroup) {
         lastGroup = unit.group;
         html += '<p class="group-label">' + esc(unit.group) + '</p>';
       }
       html += rowHtml(child, block.chapter, unit, scoreOf(child, block.chapter, unit.id));
     });
+    return html;
+  }
+
+  function chapterHtml(child, block) {
+    var played = rowsFor(child, block, true);
+    var idle = rowsFor(child, block, false);
+    var html = '<section class="chapter-block"><h4>' + esc(block.name) + '</h4>';
+    html += played;
+    if (idle) {
+      html += '<details class="idle-fold"><summary>還沒玩的小單元</summary>' + idle + '</details>';
+    }
     html += '</section>';
     return html;
+  }
+
+  function subjectHasPlay(child, subject) {
+    return subject.chapters.some(function (block) {
+      return block.units.some(function (unit) { return unitPlayed(child, block.chapter, unit); });
+    });
   }
 
   function extraHtml(child) {
@@ -321,6 +399,7 @@
       html += '<p class="absent">還沒有登入過。這個帳號進學習島一次之後，這裡才看得到成績。</p></section>';
       return html;
     }
+    html += summaryHtml(child);
     html += '<p class="total-min">Switch 一共 <b>' + totalMinutes(child) + '</b> 分鐘</p>';
     if (window.ELApprove) html += ELApprove.parentListHtml(child.approvals || {}, findUnitName);
     if (exams.length) {
@@ -329,13 +408,53 @@
       }).join('　') + '</p>';
     }
     CATALOG.forEach(function (subject) {
-      html += '<section class="subject-block"><h3>' + esc(subject.subject) + '</h3>';
+      var open = subjectHasPlay(child, subject) ? ' open' : '';
+      html += '<details class="subject-fold"' + open + '><summary>' + esc(subject.subject) + '</summary>';
       subject.chapters.forEach(function (block) { html += chapterHtml(child, block); });
-      html += '</section>';
+      html += '</details>';
     });
     html += extraHtml(child);
     html += '</section>';
     return html;
+  }
+
+  function clearedStars(raw) {
+    var prev = UnitScore.normalize(raw || {});
+    var kept = UnitScore.emptyState();
+    kept.rev = prev.rev || 0;
+    kept.scores = prev.scores.map(function () { return 0; });
+    if (typeof prev.examBest === 'number') kept.examBest = prev.examBest;
+    return kept;
+  }
+
+  function bindClears() {
+    rootEl.querySelectorAll('.clear-btn').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var uid = button.getAttribute('data-uid');
+        var chapter = button.getAttribute('data-chapter');
+        var unitId = button.getAttribute('data-unit');
+        var name = button.getAttribute('data-name');
+        var child = viewing.filter(function (item) { return item.uid === uid; })[0];
+        if (!child) return;
+        if (demo) {
+          window.alert('這是預覽，不會真的清掉。');
+          return;
+        }
+        var ok = window.confirm('確定要清除「' + name + '」的星星嗎？\n這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。');
+        if (!ok) return;
+        var prev = scoreOf(child, chapter, unitId) || {};
+        var kept = clearedStars(prev);
+        button.disabled = true;
+        var fb = window.ELFirebase;
+        fb.setDoc(fb.doc(fb.db, 'users', uid, 'scores', chapter + '__' + unitId), UnitScore.toCloud(chapter, unitId, kept)).then(function () {
+          child.scores[chapter + '__' + unitId] = UnitScore.toCloud(chapter, unitId, kept);
+          render(viewing);
+        }).catch(function () {
+          button.disabled = false;
+          setStatus('沒有清除成功。請確認 Firestore 規則已經貼上並發布。');
+        });
+      });
+    });
   }
 
   function bindResets() {
@@ -393,12 +512,13 @@
         parts.tests.map(childHtml).join('') + '</details>';
     }
     rootEl.innerHTML = html;
+    bindClears();
     bindResets();
   }
 
   function demoChildren() {
     function pack(chapter, unitId, scores, extras) {
-      var state = { chapter: chapter, unitId: unitId, scores: scores, rewards: {}, run: null, rev: 0 };
+      var state = { chapter: chapter, unitId: unitId, scores: scores, rewards: {}, run: null, rev: 0, updatedAt: '2026-11-01T00:00:00.000Z' };
       if (extras) Object.keys(extras).forEach(function (key) { state[key] = extras[key]; });
       return state;
     }
@@ -408,12 +528,12 @@
         email: 'ysc@kids.local',
         uid: 'demo-ysc',
         scores: {
-          'social-ch3__sugar': pack('social-ch3', 'sugar', [18, 28], { rewards: { reward1: '2026-11-02' } }),
-          'science-ch3__u1': pack('science-ch3', 'u1', [30], { rewards: { reward1: '2026-11-03', reward2: '2026-11-03' } }),
-          'science-ch4__u2': pack('science-ch4', 'u2', [0, 0, 0]),
-          'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86 }),
-          'chinese-u3__ch7': pack('chinese-u3', 'ch7', [26], { rewards: { reward1: '2026-11-08' } }),
-          'math-u6__6-1': pack('math-u6', '6-1', [30], { rewards: { reward1: '2026-11-09', reward2: '2026-11-09' } })
+          'social-ch3__sugar': pack('social-ch3', 'sugar', [18, 28], { rewards: { reward1: '2026-11-02' }, updatedAt: '2026-11-18T08:00:00.000Z' }),
+          'science-ch3__u1': pack('science-ch3', 'u1', [30], { rewards: { reward1: '2026-11-03', reward2: '2026-11-03' }, updatedAt: '2026-11-12T08:00:00.000Z' }),
+          'science-ch4__u2': pack('science-ch4', 'u2', [0, 0, 0], { updatedAt: '2026-11-10T08:00:00.000Z' }),
+          'english-u34__exam': pack('english-u34', 'exam', [26, 22], { rewards: { reward1: '2026-11-04' }, examBest: 86, updatedAt: '2026-11-16T08:00:00.000Z' }),
+          'chinese-u3__ch7': pack('chinese-u3', 'ch7', [26], { rewards: { reward1: '2026-11-08' }, updatedAt: '2026-11-20T08:00:00.000Z' }),
+          'math-u6__6-1': pack('math-u6', '6-1', [30], { rewards: { reward1: '2026-11-09', reward2: '2026-11-09' }, updatedAt: '2026-11-21T08:00:00.000Z' })
         },
         approvals: {
           'math-u6__6-1__reward2': {

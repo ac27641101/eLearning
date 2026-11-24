@@ -2,11 +2,11 @@
 <html lang="zh-Hant-TW">
 <head>
 <meta charset="UTF-8">
-<script src="../assets/gate.js?v=20261124c"></script>
+<script src="../assets/gate.js?v=20261124d"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>五上自然・力與運動</title>
-<link rel="stylesheet" href="style.css?v=20261124c">
+<link rel="stylesheet" href="../assets/subject.css?v=20261124d">
 </head>
 <body>
 <div class="sky-deco" aria-hidden="true">
@@ -16,14 +16,14 @@
 
 <div class="app">
   <header class="topbar">
-    <button class="px-btn home-btn" id="homeBtn" hidden>⬅ 回大廳</button>
-    <div class="title px" id="topTitle">🍎 五上自然・力與運動</div>
-    <button class="px-btn mute-btn" id="muteBtn" aria-label="音效開關">🔊</button>
+    <button type="button" class="px-btn home-btn" id="homeBtn" hidden>⬅ 回大廳</button>
+    <div class="title px" id="topTitle">🍎 第 4 單元・力與運動</div>
+    <button type="button" class="px-btn mute-btn" id="muteBtn" aria-label="音效開關">🔊</button>
   </header>
 
   <section class="screen active" id="lobby">
-    <h1 class="lobby-title">力與運動</h1>
-    <p class="lobby-sub">五年級上學期自然｜第四單元。點進小單元，用 30 顆星換 Switch 時間。</p>
+    <h1 class="lobby-title" id="lobbyTitle">第 4 單元・力與運動</h1>
+    <p class="lobby-sub" id="lobbySub">五年級上學期自然。</p>
     <div class="total px" id="totalStars"></div>
     <div class="portals" id="portals"></div>
     <a class="px-btn wood notes-btn" href="../#/science">⬅ 回科目</a>
@@ -44,9 +44,8 @@
     </section>
     <p class="run-note" id="runNote"></p>
     <div class="levels" id="levels"></div>
-    <button class="px-btn orange notes-btn" id="restartRunBtn" hidden>🔁 這次重來</button>
+    <button type="button" class="px-btn orange notes-btn" id="restartRunBtn" hidden>🔁 這次重來</button>
     <button type="button" class="px-btn wood notes-btn" id="unitBackBtn">⬅ 回單元</button>
-    <button class="px-btn wood reset-dock" id="resetBtn">🧹 清除星星紀錄</button>
   </section>
 
   <section class="screen" id="play">
@@ -59,7 +58,7 @@
     </div>
     <div class="ask px">
       <span id="lvAsk"></span>
-      <button class="px-btn stone say-btn" id="sayBtn" aria-label="朗讀題目">🔈 唸給我聽</button>
+      <button type="button" class="px-btn stone say-btn" id="sayBtn" aria-label="朗讀題目">🔈 唸給我聽</button>
     </div>
     <div class="stage" id="stage"></div>
   </section>
@@ -78,9 +77,10 @@
 </div>
 <div class="toast" id="toast" role="status" aria-live="assertive"></div>
 
-<script src="../assets/unit-score.js?v=20261124c"></script>
-<script src="../assets/reward-approve.js?v=20261124c"></script>
-<script src="data.js?v=20261124c"></script>
-<script src="game.js?v=20261124c"></script>
+<script src="../assets/unit-score.js?v=20261124d"></script>
+<script src="../assets/reward-approve.js?v=20261124d"></script>
+<script src="data.js?v=20261124d"></script>
+<script src="../assets/subject-play.js?v=20261124d"></script>
+<script src="game.js?v=20261124d"></script>
 </body>
 </html>
