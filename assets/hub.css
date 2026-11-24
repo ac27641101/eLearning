@@ -121,7 +121,9 @@ h1.lobby-title{
 .unit-card:hover{transform:translateY(-4px)}
 .unit-card:focus-visible{outline:4px solid var(--orange);outline-offset:3px}
 .unit-icon{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:56px;line-height:1;animation:bob 2s ease-in-out infinite}
-.unit-title{min-height:2.7em;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;line-height:1.35;white-space:pre-line}
+.unit-title{min-height:2.7em;display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:100%;font-size:22px;font-weight:900;line-height:1.35;white-space:normal}
+.unit-label,.unit-line,.unit-name{max-width:100%}
+.unit-name{white-space:nowrap}
 .unit-desc{font-size:15px;color:#6a5a40;line-height:1.5;font-weight:700;text-wrap:balance}
 .unit-go{margin-top:auto;font-size:15px;color:#fff;background:var(--subj-dark,var(--orange-dark));padding:4px 14px;border-radius:99px}
 .empty{background:var(--paper);padding:16px 18px;text-align:center}
@@ -131,7 +133,7 @@ h1.lobby-title{
 }
 @media (max-width:420px){
   .unit-card{min-height:188px;padding:12px 8px}
-  .unit-title{font-size:17px}
+  .unit-title{font-size:14px}
   .unit-icon{width:48px;height:48px;font-size:42px}
 }
 @media (prefers-reduced-motion:reduce){

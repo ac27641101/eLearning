@@ -824,6 +824,7 @@
   function renderChoice(q, next, index, total) {
     const opts = S.choiceDeck(q.opts);
     let locked = false;
+    /* 這一條一律加 A. B. C.，不因字數改樣式。 */
     $('stage').innerHTML = figBlock(q) + '<div class="panel px"><div class="opts">' + opts.map((o, i) => '<button type="button" class="px-btn opt" data-i="' + i + '" data-plain="' + attr(o.t) + '">' + 'ABCD'[i] + '. ' + formatRich(o.t) + '</button>').join('') + '</div><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
@@ -1276,9 +1277,19 @@
   function panelBits(q, skipStem) {
     return (q.passage || '') + (q.art ? '<div class="q-art">' + S.showGlyph(q.art) + '</div>' : '') + ((!skipStem && q.stem) ? '<p class="stem">' + esc(q.stem) + '</p>' : '');
   }
-  function optButton(o, i) {
-    if (String(o.t).indexOf('<svg') === 0) return '<button type="button" class="px-btn opt opt-clock" data-i="' + i + '">' + o.t + '</button>';
-    const big = [...String(o.t)].length <= 2;
+  function optionText(o) {
+    return String(o && o.t != null ? o.t : '');
+  }
+  function optionIsSvg(o) {
+    return optionText(o).indexOf('<svg') === 0;
+  }
+  /* 整題的選項都在兩個字以內、而且不是時鐘圖，才用大字、不加 A. B. C.。
+     長短混在一起時，每一個都加字母，避免比較長的正解被樣式露出來。 */
+  function questionUsesBigOpts(opts) {
+    return (opts || []).every(o => !optionIsSvg(o) && [...optionText(o)].length <= 2);
+  }
+  function optButton(o, i, big) {
+    if (optionIsSvg(o)) return '<button type="button" class="px-btn opt opt-clock" data-i="' + i + '">' + o.t + '</button>';
     const text = big ? esc(o.t) : ('ABCD'[i] + '. ' + esc(o.t));
     return '<button type="button" class="px-btn opt' + (big ? ' opt-big' : '') + '" data-i="' + i + '">' + text + '</button>';
   }
@@ -1484,7 +1495,8 @@
     setAsk(q.q || q.stem || '');
     const opts = q.clocks ? S.choiceDeck(q.clocks.map(c => clockSVG(c[0], c[1]))) : S.choiceDeck(q.opts);
     let locked = false;
-    $('stage').innerHTML = '<div class="panel px">' + panelBits(q) + (q.say ? audioBar() : '') + '<div class="opts">' + opts.map((o, i) => optButton(o, i)).join('') + '</div><div id="why"></div></div>';
+    const bigOpts = questionUsesBigOpts(opts);
+    $('stage').innerHTML = '<div class="panel px">' + panelBits(q) + (q.say ? audioBar() : '') + '<div class="opts">' + opts.map((o, i) => optButton(o, i, bigOpts)).join('') + '</div><div id="why"></div></div>';
     $('stage').dataset.qid = q.id || '';
     $('stage').dataset.mode = q.mode || 'choice';
     if (q.say) bindAudio($('stage'), q.say);
@@ -1766,7 +1778,8 @@
     }
     const opts = S.choiceDeck(q.opts);
     let picked = -1;
-    box.innerHTML = (q.say ? audioBar() : '') + (q.art ? '<div class="q-art">' + S.showGlyph(q.art) + '</div>' : '') + '<p class="stem">' + esc(q.stem || q.prompt || '') + '</p><div class="opts">' + opts.map((o, i) => optButton(o, i)).join('') + '</div>';
+    const bigOpts = questionUsesBigOpts(opts);
+    box.innerHTML = (q.say ? audioBar() : '') + (q.art ? '<div class="q-art">' + S.showGlyph(q.art) + '</div>' : '') + '<p class="stem">' + esc(q.stem || q.prompt || '') + '</p><div class="opts">' + opts.map((o, i) => optButton(o, i, bigOpts)).join('') + '</div>';
     host.appendChild(box);
     if (q.say) bindAudio(box, q.say);
     box.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => {
