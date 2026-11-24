@@ -35,11 +35,15 @@ a.px-btn{text-decoration:none;display:inline-flex;align-items:center;justify-con
 .px-btn.stone{background:var(--stone-dark)}
 .px-btn.red{background:var(--red)}
 .px-btn.orange{background:var(--orange)}
+.px-btn:disabled,.px-btn:disabled:active{
+  background:#bdbdbd;color:#4e4e4e;text-shadow:none;box-shadow:none;cursor:default;transform:none;
+}
 .sky-deco{position:fixed;left:0;right:0;top:0;height:58%;overflow:hidden;z-index:0;pointer-events:none}
 .cloud{position:absolute;z-index:0;top:14%;width:120px;height:28px;background:#fff;opacity:.85;box-shadow:24px -16px 0 #fff,56px -16px 0 #fff;pointer-events:none;animation:drift 60s linear infinite}
 .cloud.c2{top:42%;width:90px;animation-duration:80s;animation-delay:-30s}
 @keyframes drift{from{transform:translateX(-200px)}to{transform:translateX(110vw)}}
 .app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:10px 12px 80px;min-height:100dvh;display:flex;flex-direction:column;gap:10px}
+.app.playing{padding-bottom:max(12px,env(safe-area-inset-bottom,0px));height:100dvh;max-height:100dvh;overflow:hidden}
 .topbar{display:flex;align-items:center;gap:8px}
 .home-btn{font-size:16px;padding:8px 12px;background:var(--wood);white-space:nowrap}
 .topbar .title{flex:1 1 auto;min-width:0;background:rgba(255,255,255,.88);padding:6px 12px;font-size:clamp(15px,3.6vw,20px);font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -279,6 +283,19 @@ body.reward-open{overflow:hidden}
 .line-hint{color:#8a7a5a;font-size:18px;font-weight:800}
 .tile-bank{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;margin-top:12px}
 .tile-actions{display:flex;width:100%;margin-top:10px}
+.tile-actions .px-btn{width:100%;min-height:52px}
+.arrange-actions{flex:0 0 auto;display:flex;flex-direction:row;align-items:stretch;gap:8px;width:100%;margin-top:8px}
+.arrange-actions .px-btn{flex:1 1 0;width:auto;min-height:56px}
+.arrange-actions .check-btn{margin-top:0;width:auto;flex:1.15 1 0}
+#play.arrange-on{flex:1 1 auto;min-height:0;overflow:hidden}
+#play:not(.arrange-on){flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#play.arrange-on .stage.arrange-stage{flex:1 1 auto;min-height:0;overflow:hidden}
+#play.arrange-on .stage.arrange-stage:has(.arrange-actions.done){overflow-y:auto}
+#play.arrange-on .stage.arrange-stage .panel{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#play.arrange-on #tiles{flex:1 1 0%;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#play.arrange-on .build-line{flex:0 0 auto}
+#play.arrange-on .tile-bank{overflow:visible;min-height:0;margin-top:12px}
+#play.arrange-on .arrange-actions.done{position:static}
 .ltile{min-width:56px;min-height:56px;max-width:100%;padding:10px 14px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:4px solid var(--ink);border-radius:12px;font-family:inherit;font-size:22px;font-weight:900;line-height:1.35;text-align:center;box-shadow:0 4px 0 rgba(0,0,0,.35);user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer}
 .ltile.in-line{background:#e7f6ff}
 .ltile.ok{cursor:default}
