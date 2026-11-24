@@ -639,26 +639,30 @@ function optButton(o, i){
 function cardFace(it){
   return `<span class="em">${S.showGlyph(it.em || '')}</span><span class="tx">${S.escapeHtml(it.t)}</span>`;
 }
+function shuffleTiles(tiles){
+  const pool = S.shuffle(tiles.slice());
+  return pool;
+}
 function makePool(pieces, extra){
   const tiles = [];
   pieces.forEach((t, i) => tiles.push({ id: 'a' + i, t: t }));
   (extra || []).forEach((t, i) => tiles.push({ id: 'e' + i, t: t }));
-  return S.shuffle(tiles);
+  return shuffleTiles(tiles);
 }
 function mountTiles(container, spec){
   const origin = makePool(spec.pieces, spec.extra);
   let pool = origin.slice();
   let placed = [];
   let locked = false;
-  container.innerHTML = '<div class="build-line"></div><div class="tile-bank"></div><div class="tile-actions"><button type="button" class="px-btn stone" data-act="clear">清除重排</button></div>';
+  container.innerHTML = '<div class="build-line"></div><div class="tile-actions"><button type="button" class="px-btn stone" data-act="clear">清除重排</button></div><div class="tile-bank"></div>';
   const line = container.querySelector('.build-line');
   const bank = container.querySelector('.tile-bank');
   const clearBtn = container.querySelector('[data-act="clear"]');
   clearBtn.addEventListener('click', () => {
     if (locked) return;
     Sound.click();
-    pool = origin.slice();
     placed = [];
+    pool = shuffleTiles(origin);
     draw();
   });
   function draw(){

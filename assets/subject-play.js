@@ -286,6 +286,14 @@
   }
   function show(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+    const app = document.querySelector('.app');
+    if (app) app.classList.toggle('playing', id === 'play');
+    if (id !== 'play') {
+      const stage = $('stage');
+      if (stage) stage.classList.remove('arrange-stage');
+      const play = $('play');
+      if (play) play.classList.remove('arrange-on');
+    }
     const home = $('homeBtn');
     home.hidden = id === 'lobby';
     if (!home.hidden) home.textContent = id === 'play' ? '⬅ 回小單元' : '⬅ 回單元';
@@ -694,6 +702,8 @@
     setAsk(q);
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
+    $('stage').classList.remove('arrange-stage');
+    $('play').classList.remove('arrange-on');
     if (q.mode === 'card') renderCard(q, next, index, total);
     else if (q.mode === 'keypad') renderKeypad(q, next, index, total);
     else if (q.mode === 'tiles' || q.mode === 'order') renderArrange(q, next, index, total);
@@ -773,10 +783,9 @@
       bindNext(next);
     });
   }
-  function makePool(pieces) {
-    const tiles = pieces.map((t, i) => ({ id: 't' + i, t: t }));
-    const pool = S.shuffle(tiles);
-    const same = pool.length > 1 && pool.every((p, i) => p.t === pieces[i]);
+  function shuffleTiles(tiles, correct) {
+    const pool = S.shuffle(tiles.slice());
+    const same = pool.length > 1 && pool.every((p, i) => p.t === correct[i]);
     if (same) {
       const tmp = pool[0];
       pool[0] = pool[1];
@@ -784,12 +793,17 @@
     }
     return pool;
   }
+  function makePool(pieces) {
+    return shuffleTiles(pieces.map((t, i) => ({ id: 't' + i, t: t })), pieces);
+  }
   function renderArrange(q, next, index, total) {
     const hint = q.mode === 'order' ? '點卡片排上去，或拖過去。排好再按檢查。' : '點詞卡排成一句，或拖過去。排好再按檢查。';
-    $('stage').innerHTML = figBlock(q) + '<div class="panel px"><p class="arrange-hint">' + hint + '</p><div id="tiles"></div><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button><div id="why"></div></div>';
+    $('play').classList.add('arrange-on');
+    $('stage').classList.add('arrange-stage');
+    $('stage').innerHTML = figBlock(q) + '<div class="panel px"><p class="arrange-hint">' + hint + '</p><div id="tiles"></div><div class="arrange-actions"><button type="button" class="px-btn stone" data-act="clear">清除重排</button><button type="button" class="px-btn orange check-btn" id="checkBtn">檢查</button></div><div id="why"></div></div>';
     $('stage').dataset.qid = q.id;
     $('stage').dataset.mode = q.mode;
-    const box = mountTiles($('tiles'), q.tokens);
+    const box = mountTiles($('tiles'), q.tokens, $('stage').querySelector('[data-act="clear"]'));
     let locked = false;
     $('checkBtn').addEventListener('click', () => {
       if (locked || game.over) return;
@@ -800,26 +814,34 @@
       const yours = got.length ? arrangeText(got, q.mode) : '';
       const correct = arrangeText(q.tokens, q.mode);
       $('checkBtn').disabled = true;
+      const actions = $('stage').querySelector('.arrange-actions');
+      if (actions) actions.classList.add('done');
       if (ok) { goodItem(q.id); bigCheck(); }
       else missItem(q.id, '順序還不對，這顆星拿不到。', { q: q.q, a: yours || '（空白）', c: correct });
       $('why').innerHTML = nextBtn(index, total) + explainHtml(q, yours, correct);
       bindNext(next);
     });
   }
-  function mountTiles(container, tokens) {
+  function mountTiles(container, tokens, clearBtn) {
     const origin = makePool(tokens);
     let pool = origin.slice();
     let placed = [];
     let locked = false;
-    container.innerHTML = '<div class="build-line"></div><div class="tile-bank"></div><div class="tile-actions"><button type="button" class="px-btn stone" data-act="clear">清除重排</button></div>';
+    container.innerHTML = '<div class="build-line"></div><div class="tile-bank"></div>';
+    if (!clearBtn) {
+      const actions = document.createElement('div');
+      actions.className = 'tile-actions';
+      actions.innerHTML = '<button type="button" class="px-btn stone" data-act="clear">清除重排</button>';
+      container.appendChild(actions);
+      clearBtn = actions.querySelector('[data-act="clear"]');
+    }
     const line = container.querySelector('.build-line');
     const bank = container.querySelector('.tile-bank');
-    const clearBtn = container.querySelector('[data-act="clear"]');
     clearBtn.addEventListener('click', () => {
       if (locked) return;
       Sound.click();
-      pool = origin.slice();
       placed = [];
+      pool = shuffleTiles(origin, tokens);
       draw();
     });
     function draw() {
