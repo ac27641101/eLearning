@@ -8,6 +8,6 @@ SubjectPlay.boot({
   },
   "topTitle": "📖 五上國語・第參單元",
   "lobbyTitle": "第參單元",
-  "lobbySub": "五年級上學期國語｜第參單元。點進小單元，用 30 顆星換 Switch 時間。"
+  "lobbySub": "五年級上學期國語｜第參單元。"
 });
 

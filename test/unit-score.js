@@ -158,39 +158,46 @@ function testPreviewDoesNotWrite() {
   assert.strictEqual(S.earned(S.load('social-g5', 'preview', box), 'reward1'), false);
   assert.strictEqual(S.earned(S.load('social-g5', 'preview', box), 'reward2'), false);
 
+  const playSrc = fs.readFileSync(path.join(root, 'assets/subject-play.js'), 'utf8');
+  const start = playSrc.indexOf('function showRewardCard');
+  const end = playSrc.indexOf('function renderRewards');
+  assert.ok(start > 0 && end > start);
+  const fn = playSrc.slice(start, end);
+  assert.ok(fn.includes('if (preview) S.previewView(S.todayISO())'));
+  assert.ok(!fn.includes('saveScore'));
+  assert.ok(!fn.includes('S.save('));
+  assert.ok(playSrc.includes('preview: true'));
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
     const src = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
-    const start = src.indexOf('function showRewardCard');
-    const end = src.indexOf('function renderRewards');
-    assert.ok(start > 0 && end > start, unit);
-    const fn = src.slice(start, end);
-    assert.ok(fn.includes('if (preview) S.previewView(S.todayISO())'), unit);
-    assert.ok(!fn.includes('saveScore'), unit);
-    assert.ok(!fn.includes('S.save('), unit);
-    assert.ok(src.includes('preview: true'), unit);
+    assert.ok(!src.includes('S.save('), unit);
+    assert.ok(!src.includes('saveScore'), unit);
   });
 }
 
 function testCopyAndSubjectLinks() {
   const dialog = '這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。';
+  const play = fs.readFileSync(path.join(root, 'assets/subject-play.js'), 'utf8');
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
     const html = fs.readFileSync(path.join(root, unit, 'index.html'), 'utf8');
     const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
     assert.ok(!html.includes('回學習島'), unit);
     assert.ok(html.includes('id="homeBtn"'), unit);
+    assert.ok(!html.includes('清除星星'), unit);
+    assert.ok(!html.includes('resetBtn'), unit);
+    assert.ok(!html.includes('style.css'), unit);
     const versions = {
-      '../assets/gate.js': '20261124c',
-      'style.css': '20261124c',
-      '../assets/unit-score.js': '20261124c',
-      '../assets/reward-approve.js': '20261124c',
-      'data.js': '20261124c',
-      'game.js': '20261124c'
+      '../assets/gate.js': '20261124d',
+      '../assets/subject.css': '20261124d',
+      '../assets/subject-play.js': '20261124d',
+      '../assets/unit-score.js': '20261124d',
+      '../assets/reward-approve.js': '20261124d',
+      'data.js': '20261124d',
+      'game.js': '20261124d'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), unit + ' ' + file);
     });
-    assert.ok(js.includes('ELApprove.voucherDecor'), unit);
-    assert.ok(js.includes('ELApprove.attach'), unit);
+    assert.ok(js.includes('"chapter": "' + unit + '"') || js.includes("chapter: '" + unit + "'"), unit);
     assert.ok(!js.includes('爸爸簽名'), unit);
     const subject = unit.startsWith('social-') ? 'social' : (unit.startsWith('science-') ? 'science' : 'english');
     const subjectHash = '../#/' + subject;
@@ -205,35 +212,41 @@ function testCopyAndSubjectLinks() {
     assert.ok(lobby.includes('href="' + subjectHash + '">⬅ 回科目</a>'), unit + ' lobby');
     assert.ok(!lobby.includes('回課程'), unit + ' lobby is 回科目');
     assert.strictEqual((lobby.match(/⬅ 回科目/g) || []).length, 1, unit + ' lobby');
-    assert.deepStrictEqual(html.match(/href="\.\.\/[^"]*"/g) || [], ['href="' + subjectHash + '"'], unit + ' only the lobby links upward');
+    assert.deepStrictEqual(html.match(/href="\.\.\/#\/[^"]*"/g) || [], ['href="' + subjectHash + '"'], unit + ' only the lobby links upward');
     assert.ok(!deeper.includes('#/social') && !deeper.includes('#/science') && !deeper.includes('#/english'), unit + ' deeper screens stay in the unit');
     assert.ok(!deeper.includes('回課程') && !deeper.includes('回科目'), unit + ' deeper labels name the next level up');
-    assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>\n    <button class="px-btn wood reset-dock" id="resetBtn">🧹 清除星星紀錄</button>'), unit);
+    assert.ok(html.includes('id="unitBackBtn">⬅ 回單元</button>'), unit);
     if (unit === 'social-ch3') {
       const lesson = html.slice(html.indexOf('id="lesson"'), html.indexOf('id="unit"'));
       assert.ok(lesson.includes('id="lessonBackBtn">⬅ 回單元</button>'), 'lesson screen');
       assert.ok(!lesson.includes('回第三課'), 'lesson screen');
-      assert.ok(js.includes("if (lessonBackBtn) lessonBackBtn.addEventListener('click', () => {\n  Sound.click();\n  renderLobby();\n});"), 'lesson back uses the lobby navigation');
-      assert.ok(js.includes("if (unitBack) unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';"), 'lesson units name the lesson');
-      assert.ok(js.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => {\n  Sound.click();\n  if (curLesson) openLesson(curLesson);\n  else renderLobby();\n});"), 'unit back is one level up');
-    } else {
-      assert.ok(js.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => { Sound.click(); renderLobby(); });"), unit + ' unit back returns to the chapter lobby');
     }
-    assert.ok(js.includes(dialog), unit);
-    assert.ok(!js.includes('3 次分數'), unit);
-    assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'stone'}"), unit);
-    assert.ok(js.includes("{label: '📋 回小單元', value: 'unit', cls: 'wood'}"), unit);
-    assert.ok(!js.includes("{label: '📋 回單元'"), unit + ' small-unit back button is 回小單元');
-    assert.ok(!js.includes("{label: '⬅ 回單元', value: 'lobby', cls: 'wood'}"), unit + ' result window does not skip to the chapter');
-    assert.ok(js.includes("else if (v === 'lobby') renderLobby();"), unit);
-    assert.ok(!js.includes("location.href = '../'"), unit + ' finish dialog stays in the unit');
-    const finish = js.slice(js.indexOf('async function finishLevel'), js.indexOf('function makeDraggable'));
-    const labels = [...finish.matchAll(/label: '([^']+)'/g)].map(m => m[1]);
-    assert.strictEqual(new Set(labels).size, labels.length, unit + ' finish labels ' + labels.join(' | '));
-    const rewardAt = finish.indexOf('ELApprove.celebrateOffers(result.unlocked');
-    const lobbyAt = finish.indexOf("v === 'lobby'");
-    assert.ok(rewardAt > 0 && lobbyAt > rewardAt, unit + ' shows a new reward card before leaving');
   });
+  assert.ok(play.includes("if (lessonBackBtn) lessonBackBtn.addEventListener('click', () => {\n      Sound.click();\n      renderLobby();\n    });"), 'lesson back uses the lobby navigation');
+  assert.ok(play.includes("if (unitBack) unitBack.textContent = curLesson ? '⬅ 回' + curLesson.tag : '⬅ 回單元';"), 'lesson units name the lesson');
+  assert.ok(play.includes('if (curLesson) openLesson(curLesson);'), 'unit back is one level up');
+  assert.ok(play.includes(dialog) === false, 'kid play no longer clears stars');
+  assert.ok(!play.includes('3 次分數'));
+  assert.ok(play.includes("{ label: '📋 回小單元', value: 'unit', cls: 'stone' }"));
+  assert.ok(play.includes("{ label: '📋 回小單元', value: 'unit', cls: 'wood' }"));
+  assert.ok(!play.includes("{ label: '📋 回單元'"), 'small-unit back button is 回小單元');
+  assert.ok(!play.includes("{ label: '⬅ 回單元', value: 'lobby', cls: 'wood' }"));
+  assert.ok(play.includes("else if (v === 'lobby') renderLobby();"));
+  assert.ok(!play.includes("location.href = '../'"));
+  const finish = play.slice(play.indexOf('async function finishLevel'), play.indexOf('function makeDraggable'));
+  const labels = [...finish.matchAll(/label: '([^']+)'/g)].map(m => m[1]);
+  assert.strictEqual(new Set(labels).size, labels.length, 'finish labels ' + labels.join(' | '));
+  const rewardAt = finish.indexOf('ELApprove.celebrateOffers(result.unlocked');
+  const lobbyAt = finish.indexOf("v === 'lobby'");
+  assert.ok(rewardAt > 0 && lobbyAt > rewardAt, 'shows a new reward card before leaving');
+  const parentJsEarly = fs.readFileSync(path.join(root, 'parent/parent.js'), 'utf8');
+  assert.ok(parentJsEarly.includes(dialog), 'parent clear keeps the old kid wording');
+  assert.ok(parentJsEarly.includes('function clearedStars'));
+  assert.ok(parentJsEarly.includes('kept.scores = prev.scores.map(function () { return 0; })'));
+  assert.ok(parentJsEarly.includes('kept.rev = prev.rev || 0'));
+  const clearFn = parentJsEarly.slice(parentJsEarly.indexOf('function bindClears'), parentJsEarly.indexOf('function bindResets'));
+  assert.ok(!clearFn.includes('deleteDoc'), 'clearing stars leaves the review record');
+  assert.ok(!clearFn.includes('rev + 1'), 'clearing stars does not spend a new revision');
 
   const hub = fs.readFileSync(path.join(root, 'assets/hub.js'), 'utf8');
   assert.ok(hub.includes("id === 'subjects'"));
@@ -245,27 +258,23 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261124c'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261124d'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261124c') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261124d') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
   assert.strictEqual(S.STAR_MAX, 30);
-  ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34'].forEach(unit => {
-    const js = fs.readFileSync(path.join(root, unit, 'game.js'), 'utf8');
-    assert.ok(js.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"), unit);
-  });
-  const english = fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8');
-  assert.ok(english.includes('st.examBest = n'), 'a finished mock exam stores examBest');
+  assert.ok(play.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"));
+  assert.ok(play.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
-  assert.ok(parentPage.includes('../assets/gate.js?v=20261124c'), 'parent gate');
-  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261124c'), 'parent approve');
-  assert.ok(parentPage.includes('parent.css?v=20261124c'), 'parent css');
-  assert.ok(parentPage.includes('parent.js?v=20261124c'), 'parent js');
+  assert.ok(parentPage.includes('../assets/gate.js?v=20261124d'), 'parent gate');
+  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261124d'), 'parent approve');
+  assert.ok(parentPage.includes('parent.css?v=20261124d'), 'parent css');
+  assert.ok(parentPage.includes('parent.js?v=20261124d'), 'parent js');
   ['../assets/hub.css', '../assets/unit-score.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261124c'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261124d'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -483,10 +492,10 @@ function testLevelMarkAndReview() {
   const done = S.emptyState();
   done.scores = [29];
   assert.strictEqual(done.run, null);
-  assert.strictEqual(S.levelMark(done, 'lv1', null), '還沒有每關紀錄');
+    assert.strictEqual(S.levelMark(done, 'lv1', null), '還沒玩過');
   assert.strictEqual(S.levelMark(done, 'lv1', { stars: 7, max: 8 }), '上次 ★ 7 / 8');
   assert.strictEqual(S.levelMark(done, 'lv1', { stars: 4, max: 8, lastRunStars: 7, lastRunMax: 8 }), '上次 ★ 7 / 8');
-  assert.strictEqual(S.levelMark(done, 'lv1', { stars: 4, max: 0, wrong: [{ q: '題', a: '錯', c: '對' }] }), '還沒有每關紀錄');
+    assert.strictEqual(S.levelMark(done, 'lv1', { stars: 4, max: 0, wrong: [{ q: '題', a: '錯', c: '對' }] }), '還沒玩過');
   const partial = S.memoryStorage();
   S.saveReviewLevel('social-ch3', 'sugar', 'hand', {
     stars: 8, max: 8, wrong: [{ q: '舊題', a: '舊答', c: '對' }], at: '2026-11-01'
@@ -542,8 +551,8 @@ function testLevelMarkAndReview() {
   assert.deepStrictEqual(S.parseScreenHash('#/lesson/land/unit/sugar/play'), { lesson: 'land', unit: 'sugar', play: true });
   assert.strictEqual(S.screenHash({ lesson: 'land', unit: 'sugar' }), '#/lesson/land/unit/sugar');
   assert.deepStrictEqual(S.parseScreenHash(S.screenHash({ lesson: 'land', unit: 'sugar', play: true })), { lesson: 'land', unit: 'sugar', play: true });
-  assert.ok(fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8').includes('q.stem || q.q'));
-  assert.ok(fs.readFileSync(path.join(root, 'english-u34/game.js'), 'utf8').includes('正確拼法：'));
+  assert.ok(fs.readFileSync(path.join(root, 'assets/subject-play.js'), 'utf8').includes('q.stem || q.q'));
+  assert.ok(fs.readFileSync(path.join(root, 'assets/subject-play.js'), 'utf8').includes('正確拼法：'));
   const rules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
   assert.ok(rules.includes('match /reviews/{reviewId}'));
   assert.ok(rules.includes('reviewId == request.resource.data.chapter + \'__\' + request.resource.data.unitId'));
@@ -571,7 +580,7 @@ function testPartialRestartDoesNotBecomeLastRun() {
   assert.strictEqual(restarted.run, null);
   const unfinished = S.loadReview(chapter, unitId, box).levels.lv1;
   assert.ok(unfinished.lastRunStars == null && unfinished.lastRunMax == null);
-  assert.strictEqual(S.levelMark(restarted, 'lv1', unfinished), '還沒有每關紀錄');
+  assert.strictEqual(S.levelMark(restarted, 'lv1', unfinished), '還沒玩過');
   assert.ok(S.reviewBodyHtml(unfinished).includes('上次這關錯了 1 題'));
   assert.strictEqual(S.levelMark(S.emptyState(), 'lv1', { stars: 6, max: 8 }), '上次 ★ 6 / 8');
 
@@ -668,8 +677,9 @@ function testNewSubjects() {
   const labels = [...finish.matchAll(/label: '([^']+)'/g)].map(m => m[1]);
   assert.deepStrictEqual(labels, ['🔁 再玩一次', '▶ 下一關', '📋 回小單元']);
   assert.ok(play.includes("home.textContent = id === 'play' ? '⬅ 回小單元' : '⬅ 回單元'"));
-  assert.ok(play.includes("if (unitBackBtn) unitBackBtn.addEventListener('click', () => { Sound.click(); renderLobby(); });"));
-  assert.ok(play.includes('這一單元的星星和獎勵卡日期會清掉。用過的計分次數不會回來，不能清掉後再重新計分 3 次。其他單元不會動。'));
+  assert.ok(play.includes('if (curLesson) openLesson(curLesson);'));
+  assert.ok(!play.includes('id="resetBtn"'));
+  assert.ok(!play.includes('清除這一單元的星星'));
   assert.ok(play.includes('if (preview) S.previewView(S.todayISO())'));
   assert.ok(play.includes('preview: true'));
   assert.ok(play.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"));
@@ -696,13 +706,13 @@ function testNewSubjects() {
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
     const versions = {
-      '../assets/subject.css': '20261124c',
-      '../assets/subject-play.js': '20261124c',
-      '../assets/reward-approve.js': '20261124c',
-      'data.js': '20261124c',
-      'game.js': '20261124c',
-      '../assets/gate.js': '20261124c',
-      '../assets/unit-score.js': '20261124c'
+      '../assets/subject.css': '20261124d',
+      '../assets/subject-play.js': '20261124d',
+      '../assets/reward-approve.js': '20261124d',
+      'data.js': '20261124d',
+      'game.js': '20261124d',
+      '../assets/gate.js': '20261124d',
+      '../assets/unit-score.js': '20261124d'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), dir + ' ' + file);
@@ -1001,7 +1011,7 @@ function testRewardApproval() {
   assert.ok(!parentJs.includes('deleteDoc(fb.doc(fb.db, \'users\', uid, \'approvals\''));
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34', 'math-u6', 'chinese-u3', 'parent'].forEach(dir => {
     const html = fs.readFileSync(path.join(root, dir, 'index.html'), 'utf8');
-    assert.ok(html.includes('reward-approve.js?v=20261124c'), dir);
+    assert.ok(html.includes('reward-approve.js?v=20261124d'), dir);
     assert.ok(!html.includes('爸爸簽名'), dir);
   });
 }

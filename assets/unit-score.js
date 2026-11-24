@@ -529,7 +529,7 @@
     const last = lastRunText(levelReview);
     if (practice) return last ? '練習・' + last : '練習';
     if (last) return last;
-    return '還沒有每關紀錄';
+    return '還沒玩過';
   }
 
   function positiveCount(value) {
