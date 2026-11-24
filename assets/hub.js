@@ -24,77 +24,77 @@
       subject: 'chinese',
       href: 'chinese-u4/',
       icon: '✨',
-      title: '第 4 單元・\n平凡中的特別',
+      title: '第 4 單元\n・平凡中的特別',
       desc: '第十課到第十二課'
     },
     {
       subject: 'math',
       href: 'math-u6/',
       icon: '➗',
-      title: '第 6 單元・\n異分母分數的加減',
+      title: '第 6 單元\n・異分母分數的加減',
       desc: '加法、減法、分數的應用'
     },
     {
       subject: 'math',
       href: 'math-u7/',
       icon: '🔷',
-      title: '第 7 單元・\n線對稱圖形',
+      title: '第 7 單元\n・線對稱圖形',
       desc: '對稱軸、對稱點，和剪紙'
     },
     {
       subject: 'math',
       href: 'math-u8/',
       icon: '✖️',
-      title: '第 8 單元・\n整數四則運算',
+      title: '第 8 單元\n・整數四則運算',
       desc: '連除、多步驟、分配律、平均'
     },
     {
       subject: 'math',
       href: 'math-u9/',
       icon: '📐',
-      title: '第 9 單元・\n面積',
+      title: '第 9 單元\n・面積',
       desc: '平行四邊形、三角形、梯形'
     },
     {
       subject: 'math',
       href: 'math-u10/',
       icon: '🔺',
-      title: '第 10 單元・\n柱體、錐體和球',
+      title: '第 10 單元\n・柱體、錐體和球',
       desc: '分類、構成要素、展開圖和球'
     },
     {
       subject: 'social',
       href: 'social-ch3/',
       icon: '🌾',
-      title: '第 3 單元・\n臺灣的物產資源',
+      title: '第 3 單元\n・臺灣的物產資源',
       desc: '第三單元：田裡、牧場海洋、山林與山城'
     },
     {
       subject: 'social',
       href: 'social-g5/',
       icon: '🧭',
-      title: '第 4 單元・\n看見福爾摩沙',
+      title: '第 4 單元\n・看見福爾摩沙',
       desc: '第四單元：從潟湖貿易走到大航海時代'
     },
     {
       subject: 'science',
       href: 'science-ch3/',
       icon: '🧪',
-      title: '第 3 單元・\n神奇的水溶液',
+      title: '第 3 單元\n・神奇的水溶液',
       desc: '第三單元：水溶液、酸鹼和導電'
     },
     {
       subject: 'science',
       href: 'science-ch4/',
       icon: '🍎',
-      title: '第 4 單元・\n力與運動',
+      title: '第 4 單元\n・力與運動',
       desc: '第四單元：地球引力、測量力和摩擦力'
     },
     {
       subject: 'english',
       href: 'english-u34/',
       icon: '📘',
-      title: 'Unit 3–4・\n期末複習',
+      title: 'Unit 3–4\n・期末複習',
       desc: '休閒活動、作息時間、弱點加強、模擬考'
     }
   ];
@@ -118,6 +118,31 @@
     if (group) group.units.push(unit);
   });
 
+  /* 「第 N 單元」自己一行。・跟名稱黏在一起，換行時不會把・留在第一行尾巴。
+     國語第參單元沒有單元名稱，標題維持原樣。 */
+  function fillUnitTitle(title, raw) {
+    var text = String(raw || '');
+    var sep = text.indexOf('・');
+    if (sep === -1) {
+      text.split('\n').forEach(function (line) {
+        var span = document.createElement('span');
+        span.className = 'unit-line';
+        span.textContent = line;
+        title.appendChild(span);
+      });
+      return;
+    }
+    var head = text.slice(0, sep).replace(/[\s\n]+$/g, '');
+    var name = text.slice(sep + 1).replace(/^[\s\n]+/, '');
+    var label = document.createElement('span');
+    label.className = 'unit-label';
+    label.textContent = head;
+    var rest = document.createElement('span');
+    rest.className = 'unit-name';
+    rest.textContent = '・' + name;
+    title.append(label, rest);
+  }
+
   function makeCard(unit) {
     var link = document.createElement('a');
     link.className = 'unit-card px';
@@ -130,7 +155,7 @@
 
     var title = document.createElement('span');
     title.className = 'unit-title';
-    title.textContent = unit.title;
+    fillUnitTitle(title, unit.title);
 
     var desc = document.createElement('span');
     desc.className = 'unit-desc';

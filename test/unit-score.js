@@ -186,13 +186,13 @@ function testCopyAndSubjectLinks() {
     assert.ok(!html.includes('resetBtn'), unit);
     assert.ok(!html.includes('style.css'), unit);
     const versions = {
-      '../assets/gate.js': '20261124d',
-      '../assets/subject.css': '20261124d',
-      '../assets/subject-play.js': '20261124d',
-      '../assets/unit-score.js': '20261124d',
-      '../assets/reward-approve.js': '20261124d',
-      'data.js': '20261124d',
-      'game.js': '20261124d'
+      '../assets/gate.js': '20261124e',
+      '../assets/subject.css': '20261124e',
+      '../assets/subject-play.js': '20261124e',
+      '../assets/unit-score.js': '20261124e',
+      '../assets/reward-approve.js': '20261124e',
+      'data.js': '20261124e',
+      'game.js': '20261124e'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), unit + ' ' + file);
@@ -258,10 +258,10 @@ function testCopyAndSubjectLinks() {
   const hubPage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   assert.ok(hubPage.includes('id="subjectBack"') && hubPage.includes('⬅ 回全部科目'));
   ['assets/gate.js', 'assets/hub.css', 'assets/hub.js'].forEach(file => {
-    assert.ok(hubPage.includes(file + '?v=20261124d'), 'hub ' + file);
+    assert.ok(hubPage.includes(file + '?v=20261124e'), 'hub ' + file);
   });
   const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
-  assert.ok(readme.includes('?v=20261124d') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
+  assert.ok(readme.includes('?v=20261124e') && readme.includes('每次發佈'), 'readme tells you to bump the asset version');
   assert.strictEqual(S.ATTEMPT_LIMIT, 3);
   assert.strictEqual(S.NEED_MINUTES_30, 26);
   assert.strictEqual(S.NEED_MINUTES_60, 30);
@@ -269,12 +269,12 @@ function testCopyAndSubjectLinks() {
   assert.ok(play.includes("document.addEventListener('el-scores-ready', refreshAfterScores);"));
   assert.ok(play.includes('st.examBest = n'), 'a finished mock exam stores examBest');
   const parentPage = fs.readFileSync(path.join(root, 'parent/index.html'), 'utf8');
-  assert.ok(parentPage.includes('../assets/gate.js?v=20261124d'), 'parent gate');
-  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261124d'), 'parent approve');
-  assert.ok(parentPage.includes('parent.css?v=20261124d'), 'parent css');
-  assert.ok(parentPage.includes('parent.js?v=20261124d'), 'parent js');
+  assert.ok(parentPage.includes('../assets/gate.js?v=20261124e'), 'parent gate');
+  assert.ok(parentPage.includes('../assets/reward-approve.js?v=20261124e'), 'parent approve');
+  assert.ok(parentPage.includes('parent.css?v=20261124e'), 'parent css');
+  assert.ok(parentPage.includes('parent.js?v=20261124e'), 'parent js');
   ['../assets/hub.css', '../assets/unit-score.js'].forEach(file => {
-    assert.ok(parentPage.includes(file + '?v=20261124d'), 'parent ' + file);
+    assert.ok(parentPage.includes(file + '?v=20261124e'), 'parent ' + file);
   });
   assert.ok(parentPage.includes('⬅ 回學習島'));
 }
@@ -706,13 +706,13 @@ function testNewSubjects() {
     assert.ok(html.includes('id="homeBtn"'), dir);
     assert.ok(!html.includes('回學習島'), dir);
     const versions = {
-      '../assets/subject.css': '20261124d',
-      '../assets/subject-play.js': '20261124d',
-      '../assets/reward-approve.js': '20261124d',
-      'data.js': '20261124d',
-      'game.js': '20261124d',
-      '../assets/gate.js': '20261124d',
-      '../assets/unit-score.js': '20261124d'
+      '../assets/subject.css': '20261124e',
+      '../assets/subject-play.js': '20261124e',
+      '../assets/reward-approve.js': '20261124e',
+      'data.js': '20261124e',
+      'game.js': '20261124e',
+      '../assets/gate.js': '20261124e',
+      '../assets/unit-score.js': '20261124e'
     };
     Object.keys(versions).forEach(file => {
       assert.ok(html.includes(file + '?v=' + versions[file]), dir + ' ' + file);
@@ -1011,7 +1011,7 @@ function testRewardApproval() {
   assert.ok(!parentJs.includes('deleteDoc(fb.doc(fb.db, \'users\', uid, \'approvals\''));
   ['social-ch3', 'social-g5', 'science-ch3', 'science-ch4', 'english-u34', 'math-u6', 'chinese-u3', 'parent'].forEach(dir => {
     const html = fs.readFileSync(path.join(root, dir, 'index.html'), 'utf8');
-    assert.ok(html.includes('reward-approve.js?v=20261124d'), dir);
+    assert.ok(html.includes('reward-approve.js?v=20261124e'), dir);
     assert.ok(!html.includes('爸爸簽名'), dir);
   });
 }
